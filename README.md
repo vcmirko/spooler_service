@@ -50,26 +50,25 @@ Note that they are all optional.
 The DATA_PATH is the root path for all custom files, including the config, secrets, flows, locks, logs, templates and other data files.  The default is `data/`.  The application will create the directories if they do not exist.  But feel free to override them.  The application will use the environment variables to create the paths.
 
 
-- DATA_PATH: Path to the data directory.
+- DATA_PATH: Path to the data directory.  
   default: `data/`
-- LOCK_PATH: Path to the directory for lock files.
+- LOCK_PATH: Path to the directory for lock files.  
   default: `data/locks/`
-- LOG_PATH: Path to the directory for log files.
+- LOG_PATH: Path to the directory for log files.  
   default: `data/logs/`
-- FLOWS_PATH: Path to the directory for flow files.
+- FLOWS_PATH: Path to the directory for flow files.  
   default: `data/flows/`
-- TEMPLATES_PATH: Path to the directory for template files.
+- TEMPLATES_PATH: Path to the directory for template files.  
   default: `data/templates/`
-- SECRETS_PATH: Path to the secrets file.
+- SECRETS_PATH: Path to the secrets file.  
   default: `data/secrets.yml`
-- CONFIG_FILE: Path to the configuration file.
+- CONFIG_FILE: Path to the configuration file.  
   default: `data/config.yml`
-
-- API_PORT: Port for the API server. 
+- API_PORT: Port for the API server.   
   default: `5000`
-- API_PROTOCOL: Protocols for the API server (comma-separated).
+- API_PROTOCOL: Protocols for the API server (comma-separated).  
   default: `http`
-- API_TOKEN: Token for API authentication.
+- API_TOKEN: Token for API authentication.  
   default: `default_token`
 
 
