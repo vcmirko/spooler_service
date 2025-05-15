@@ -13,6 +13,7 @@ from pathlib import Path
 # - SECRETS_PATH: Path to the secrets file.
 # - CONFIG_FILE: Path to the configuration file.
 
+# - API_HOST: Hostname for the API server (swagger mainly)
 # - API_PORT: Port for the API server.
 # - API_PROTOCOL: Protocols for the API server (comma-separated).
 # - API_TOKEN: Token for API authentication.
@@ -38,6 +39,7 @@ SECRETS_PATH = Path(os.getenv("SECRETS_PATH", DATA_PATH / "secrets.yml"))
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 
 # Environment variables for API
+API_HOST = os.getenv("API_HOST", "localhost")
 API_PORT = int(os.getenv("API_PORT", 5000))
 API_PROTOCOLS = os.getenv("API_PROTOCOL", "http").split(",")  # Comma-separated string to list
 API_TOKEN = os.getenv("API_TOKEN", "default_token")

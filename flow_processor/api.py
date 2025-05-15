@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_swagger_ui import get_swaggerui_blueprint
-from flow_processor.config import API_PORT, API_TOKEN, LOCK_PATH, API_PROTOCOLS, LOG_PATH, LOG_FORMAT, LOG_FILE_NAME, CONFIG_FILE, SWAGGER_URL, SWAGGER_JSON_PATH, FLOWS_PATH
+from flow_processor.config import API_PORT, API_TOKEN, API_HOST, LOCK_PATH, API_PROTOCOLS, LOG_PATH, LOG_FORMAT, LOG_FILE_NAME, CONFIG_FILE, SWAGGER_URL, SWAGGER_JSON_PATH, FLOWS_PATH
 from flow_processor.locks import is_locked, create_lock, release_lock, release_all_locks, get_all_locks
 from flow_processor.flow import Flow
 from flow_processor.flow_scheduler import FlowScheduler
@@ -16,6 +16,7 @@ import time
 # Flask app setup
 app = Flask(__name__)
 CORS(app)
+
 # --- Logging setup: always log to file, only log to console in test mode ---
 log_file_path = os.path.join(LOG_PATH, LOG_FILE_NAME)
 file_handler = logging.FileHandler(log_file_path)
@@ -24,9 +25,8 @@ file_handler.setLevel(logging.INFO)
 
 # Attach file handler to root logger and app.logger
 logging.getLogger().addHandler(file_handler)
-app.logger.addHandler(file_handler)
-app.logger.setLevel(logging.INFO)
 logging.getLogger().setLevel(logging.INFO)
+app.logger.propagate = True
 
 # Global scheduler instance and event
 scheduler_instance = None
@@ -34,7 +34,7 @@ scheduler_ready = Event()
 
 def start_scheduler():
     global scheduler_instance
-    app.logger.info("Starting scheduler service")
+    logging.info("Starting scheduler service")
     release_all_locks()
     scheduler_instance = FlowScheduler()
     with open(CONFIG_FILE, "r") as file:
@@ -44,10 +44,10 @@ def start_scheduler():
             try:
                 scheduler_instance.add_flow(flow)
             except Exception as e:
-                app.logger.error(f"Failed to add flow: {e}")
+                logging.error(f"Failed to add flow: {e}")
     
     except Exception as e:
-        app.logger.error(f"Failed to add flows: {e}")
+        logging.error(f"Failed to add flows: {e}")
     scheduler_instance.start()
     scheduler_ready.set()
     while True:
@@ -58,7 +58,7 @@ def initialize_scheduler():
         scheduler_thread = Thread(target=start_scheduler, daemon=True)
         scheduler_thread.start()
         scheduler_ready.wait()
-        app.logger.info("Scheduler initialized and ready.")
+        logging.info("Scheduler initialized and ready.")
 
 # --- Only for testing: add StreamHandler for console output ---
 def run_app():
@@ -66,8 +66,8 @@ def run_app():
     stream_handler.setFormatter(logging.Formatter(LOG_FORMAT))
     stream_handler.setLevel(logging.INFO)
     logging.getLogger().addHandler(stream_handler)
-    app.logger.addHandler(stream_handler)
-    app.logger.info("Starting Flask app with embedded scheduler (test mode)")
+    logging.addHandler(stream_handler)
+    logging.logger.info("Starting Flask app with embedded scheduler (test mode)")
     initialize_scheduler()
     app.run(port=API_PORT, use_reloader=False)
 
@@ -81,7 +81,7 @@ def get_swagger_json():
         swagger_json = json.load(f)
 
     # Dynamically modify the Swagger JSON
-    swagger_json["host"] = f"localhost:{API_PORT}"  # Set the host dynamically
+    swagger_json["host"] = f"{API_HOST}:{API_PORT}"  # Set the host dynamically
     swagger_json["schemes"] = API_PROTOCOLS
     return jsonify(swagger_json)
 
@@ -196,7 +196,7 @@ def add_flow_to_scheduler():
     except FlowAlreadyAddedException as e:
         return jsonify({"error": str(e)}), 409
     except Exception as e:
-        app.logger.error(f"Failed to add flow: {e}")
+        logging.error(f"Failed to add flow: {e}")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
