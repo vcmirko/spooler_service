@@ -1,0 +1,72 @@
+    {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+            "name": { "type": "string" },
+            "steps": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "name": { "type": "string" },
+                        "result_key": { "type": "string" },
+                        "type": { "type": "string" },
+                        "file": {
+                            "type": "object",
+                            "properties": {
+                                "type": { "type": "string", "enum": ["yaml", "json"], "default": "yaml" },
+                                "path": { "type": "string" },
+                                "method": { "type": "string", "enum": ["read","write","append"], "default": "read" }
+                            },
+                            "required": ["path"]
+                        },
+                        "jq_expression": { "type": "string" },
+                        "flow_loop": {
+                            "type": "object",
+                            "properties": {
+                                "path": { "type": "string" },
+                                "data_key": { "type": "string" }
+                            },
+                            "required": ["path", "data_key"]
+                        },
+                        "rest": {
+                            "type": "object",
+                            "properties": {
+                                "uri": { "type": "string", "format": "uri" },
+                                "authentication": {
+                                    "type": "object",
+                                    "properties": {
+                                        "type": { "type": "string", "enum": ["basic"] },
+                                        "secret": { "type": "string" }
+                                    },
+                                    "required": ["type", "secret"]
+                                },
+                                "method": { "type": "string", "enum": ["post","get","patch","put","delete"], "default": "get" },
+                                "data_key": { "type": "string" }
+                            },
+                            "required": ["uri", "authentication", "method"]
+                        },
+                        "jq": {
+                            "type": "object",
+                            "properties": {
+                                "expression": { "type": "string" },
+                                "data_key": { "type": "string" }
+                            },
+                            "required": ["expression", "data_key"]
+                        },
+                        "jinja": {
+                            "type": "object",
+                            "properties": {
+                                "path": { "type": "string" },
+                                "data_key": { "type": "string" }
+                            },
+                            "required": ["path"]
+                        },
+                        "description": { "type": "string" }
+                    },
+                    "required": ["name", "type"]
+                }
+            }
+        },
+        "required": ["name", "steps"]
+    }

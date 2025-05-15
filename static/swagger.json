@@ -1,0 +1,257 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "version": "1.0.0",
+        "title": "Spooler Service API",
+        "description": "API documentation for the Spooler Service"
+    },
+    "host": "localhost:5000",
+    "basePath": "/api",
+    "schemes": ["http"],
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "Enter 'Bearer <your_token>' to authenticate."
+        }
+    },
+    "security": [
+        {
+            "BearerAuth": []
+        }
+    ],
+    "tags": [
+        {
+            "name": "locks",
+            "description": "Operations related to locks"
+        },
+        {
+            "name": "flows",
+            "description": "Operations related to flows"
+        }
+    ],
+    "paths": {
+        "/locks": {
+            "get": {
+                "tags": ["locks"],
+                "summary": "Get all active locks",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of active locks"
+                    }
+                }
+            },
+            "delete": {
+                "tags": ["locks"],
+                "summary": "Release all locks",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "All locks released"
+                    }
+                }
+            }
+        },
+        "/locks/{flow_name}": {
+            "delete": {
+                "tags": ["locks"],
+                "summary": "Release a specific lock",
+                "parameters": [
+                    {
+                        "name": "flow_name",
+                        "in": "path",
+                        "required": true,
+                        "type": "string",
+                        "description": "Name of the flow to release the lock for"
+                    }
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lock released"
+                    },
+                    "404": {
+                        "description": "Lock not found"
+                    }
+                }
+            }
+        },
+        "/flows": {
+            "get": {
+                "tags": ["flows"],
+                "summary": "List all added flows",
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of all added flows",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "flows": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string",
+                                                "description": "Unique ID of the flow"
+                                            },
+                                            "path": {
+                                                "type": "string",
+                                                "description": "Path to the flow YAML file"
+                                            },
+                                            "cron": {
+                                                "type": "string",
+                                                "description": "Cron schedule for the flow (if applicable)"
+                                            },
+                                            "every_seconds": {
+                                                "type": "integer",
+                                                "description": "Interval in seconds for the flow (if applicable)"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Scheduler is not running"
+                    }
+                }
+            }
+        },
+        "/flows/launch": {
+            "post": {
+                "tags": ["flows"],
+                "summary": "Launch a flow",
+                "parameters": [
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "path": {
+                                    "type": "string",
+                                    "description": "Path to the flow YAML file"
+                                },
+                                "data": {
+                                    "type": "object",
+                                    "description": "Custom object for data payload",
+                                    "additionalProperties": true
+                                }
+                            }
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Flow executed successfully"
+                    },
+                    "409": {
+                        "description": "Flow is already running"
+                    },
+                    "400": {
+                        "description": "Invalid request"
+                    }
+                }
+            }
+        },
+        "/flows/add": {
+            "post": {
+                "tags": ["flows"],
+                "summary": "Add a new flow to the scheduler",
+                "parameters": [
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "path": {
+                                    "type": "string",
+                                    "description": "Path to the flow YAML file"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Flow added to scheduler successfully"
+                    },
+                    "400": {
+                        "description": "Invalid request"
+                    },
+                    "404": {
+                        "description": "Flow file not found"
+                    },
+                    "500": {
+                        "description": "Scheduler is not running"
+                    }
+                }
+            }
+        },
+        "/flows/{flow_id}": {
+            "delete": {
+                "tags": ["flows"],
+                "summary": "Remove a flow from the scheduler by ID",
+                "parameters": [
+                    {
+                        "name": "flow_id",
+                        "in": "path",
+                        "required": true,
+                        "type": "string",
+                        "description": "Unique ID of the flow to remove"
+                    }
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Flow removed successfully"
+                    },
+                    "404": {
+                        "description": "Flow not found"
+                    },
+                    "500": {
+                        "description": "Scheduler is not running"
+                    }
+                }
+            }
+        }
+    }
+}

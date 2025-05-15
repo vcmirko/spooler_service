@@ -1,0 +1,11 @@
+PyYAML
+requests
+urllib3
+jq
+Jinja2
+schedule
+croniter
+flask
+flask-cors
+flask-swagger-ui
+gunicorn
