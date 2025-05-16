@@ -29,6 +29,10 @@
         {
             "name": "flows",
             "description": "Operations related to flows"
+        },
+        {
+            "name": "logs",
+            "description": "Operations related to logs"
         }
     ],
     "paths": {
@@ -249,6 +253,45 @@
                     },
                     "500": {
                         "description": "Scheduler is not running"
+                    }
+                }
+            }
+        },
+        "/logs": {
+            "get": {
+                "tags": ["logs"],
+                "summary": "Tail the log file",
+                "description": "Returns the last N lines of the log file. Default is 100.",
+                "parameters": [
+                    {
+                        "name": "lines",
+                        "in": "query",
+                        "description": "Number of lines to return",
+                        "required": false,
+                        "type": "integer",
+                        "default": 100
+                    }
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "A list of log lines",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "lines": {
+                                    "type": "array",
+                                    "items": { "type": "string" }
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Log file not found"
                     }
                 }
             }

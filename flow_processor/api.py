@@ -3,6 +3,7 @@ from flask_swagger_ui import get_swaggerui_blueprint
 from flow_processor.config import API_PORT, API_TOKEN, LOCK_PATH, LOG_PATH, LOG_FORMAT, LOG_LEVEL, LOG_FILE_NAME, CONFIG_FILE, SWAGGER_URL, SWAGGER_JSON_PATH, FLOWS_PATH
 from flow_processor.locks import is_locked, create_lock, release_lock, release_all_locks, get_all_locks
 from flow_processor.flow import Flow
+from flow_processor.logs import get_logs
 from flow_processor.flow_scheduler import FlowScheduler
 from flow_processor.exceptions import FlowAlreadyAddedException, FlowNotFoundException, FlowAlreadyRunningException
 from flask_cors import CORS
@@ -232,6 +233,28 @@ def add_flow_to_scheduler():
         return jsonify({"error": str(e)}), 409
     except Exception as e:
         logging.error("Error adding flow: %s", e)
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/logs", methods=["GET"])
+def fetch_logs():
+    """
+    Fetch the latest log lines.
+    Query param: lines (int) - number of lines to return (default: 100)
+    """
+    try:
+        lines = int(request.args.get("lines", 100))
+    except ValueError:
+        return jsonify({"error": "Invalid 'lines' parameter"}), 400
+
+    try:
+        logs = get_logs(lines)
+        return jsonify({"logs": logs}), 200
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+    except FileNotFoundError as e:
+        return jsonify({"error": e}), 404
+    except Exception as e:
+        logging.error("Error fetching logs: %s", e)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
