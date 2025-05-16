@@ -17,16 +17,16 @@ class FlowLoopStep(Step):
         self._list = self._flow._data.get(self._data_key)
         assert isinstance(self._list, list), "Data key must produce a list"
 
-    def process(self):
+    def process(self, ignore_when=False):
         """Process the flow loop step."""
         # check if the step is enabled
-        enabled = super().pre_process()
+        enabled = super().pre_process(ignore_when)
         if not enabled:
             return 
 
-        logging.info(f"{self._representation} -> {self._path}")
+        logging.info("%s -> %s", self._representation, self._path)
         from flow_processor import Flow # recursive import
-        logging.info(f"{self._representation} -> {self._path}")
+
         # Load the flow and process it
         self._data = []
         async def process_item(index, item):

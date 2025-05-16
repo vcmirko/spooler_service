@@ -18,17 +18,17 @@ class JinjaStep(Step):
             self._data = self._flow._data.get(self._data_key)
 
         # debug logging
-        logging.debug(f"JinjaStep initialized with path: {self._path}")
+        logging.debug("JinjaStep initialized with path: %s", self._path)
 
-    def process(self):
+    def process(self, ignore_when=False):
         """Process the jinja step."""
 
         # check if the step is enabled
-        enabled = super().pre_process()
+        enabled = super().pre_process(ignore_when)
         if not enabled:
             return 
 
-        logging.info(f"{self._representation} -> {self._path}")
+        logging.info("%s -> %s", self._representation, self._path)
         self._data = apply_jinja2_from_file(self._path, self._data)
         match self._parse:
             case "json":

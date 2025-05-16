@@ -12,15 +12,15 @@ class JiraNamesMergeStep(Step):
         assert "data_key" in self._jira_names_merge, "issues key is required"
         assert "names" in self._jira_names_merge, "names key is required, add expand=names to the jira query"
 
-    def process(self):
+    def process(self, ignore_when=False):
         """Process the Jira fields step."""
 
         # check if the step is enabled
-        enabled = super().pre_process()
+        enabled = super().pre_process(ignore_when)
         if not enabled:
             return 
 
-        logging.info(f"{self._representation} -> Transpose Jira customfields with names")
+        logging.info("%s -> Transpose Jira customfields with names", self._representation)
         data = self._flow._data.get(self._jira_names_merge.get("data_key"))
         issues = data.get(self._list_key, [])
         field_names = data.get("names", [])

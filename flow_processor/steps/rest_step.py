@@ -51,15 +51,15 @@ class RestStep(Step):
     def __repr__(self):
         return f"RestStep(name={self._name}, uri={self._uri}, method={self._method}, headers={self._headers}, data_key={self._data_key})"
 
-    def process(self):
+    def process(self, ignore_when=False):
         """Process the REST step."""
 
         # pre-process the step, check if the step is enabled
-        enabled = super().pre_process()
+        enabled = super().pre_process(ignore_when)
         if not enabled:
             return
 
-        logging.info(f"{self._representation} -> {self._method} {self._uri}")
+        logging.info("%s -> %s %s", self._representation, self._method, self._uri)
 
         # Make the REST request
         response = self._make_rest_request()
@@ -68,7 +68,7 @@ class RestStep(Step):
         else:
             # if the response contained data, log it
             if response.content:
-                logging.error(f"{self._representation} REST request failed with status code {response.status_code}: {response.content}")
+                logging.error("%s REST request failed with status code %s: %r", self._representation, response.status_code, response.content)
                 try:
                     response_content = response.json()
                 except ValueError:
@@ -79,7 +79,7 @@ class RestStep(Step):
                     response_content=response_content
                 )
             else:
-                logging.error(f"{self._representation} REST request failed with status code {response.status_code}")
+                logging.error("%s REST request failed with status code %s", self._representation, response.status_code)
                 raise RestStepException(
                     message="REST request failed",
                     status_code=response.status_code

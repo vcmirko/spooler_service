@@ -30,15 +30,15 @@ class FlowStep(Step):
         self._data_key = self._flow.get("data_key")
         self._payload = self._flow._data.get(self._data_key)
 
-    def process(self):
+    def process(self, ignore_when=False):
         """Process the flow step."""
 
         # check if the step is enabled
-        enabled = super().pre_process()
+        enabled = super().pre_process(ignore_when)
         if not enabled:
             return 
 
         from flow_processor import Flow # recursive import
-        logging.info(f"{self._representation} -> {self._path}")
+        logging.info("%s -> %s", self._representation, self._path)
         self._data = Flow(self._path,self._payload).process()
         return super().process()

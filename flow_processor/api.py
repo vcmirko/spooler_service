@@ -4,7 +4,7 @@ from flow_processor.config import API_PORT, API_TOKEN, LOCK_PATH, LOG_PATH, LOG_
 from flow_processor.locks import is_locked, create_lock, release_lock, release_all_locks, get_all_locks
 from flow_processor.flow import Flow
 from flow_processor.flow_scheduler import FlowScheduler
-from flow_processor.exceptions import FlowAlreadyAddedException
+from flow_processor.exceptions import FlowAlreadyAddedException, FlowNotFoundException, FlowAlreadyRunningException
 from flask_cors import CORS
 from threading import Thread, Event
 import os
@@ -45,10 +45,10 @@ def start_scheduler():
             try:
                 scheduler_instance.add_flow(flow)
             except Exception as e:
-                logging.error(f"Failed to add flow: {e}")
+                logging.error("Failed to add flow: %s", e)
     
     except Exception as e:
-        logging.error(f"Failed to add flows: {e}")
+        logging.error("Failed to start scheduler: %s", e)
     scheduler_instance.start()
     scheduler_ready.set()
     while True:
@@ -58,7 +58,7 @@ def start_scheduler():
 
 def initialize_scheduler():
     global scheduler_instance, scheduler_thread
-    logging.info("Initializing scheduler")
+    logging.info("Initializing scheduler service")
     # Start if thread is not alive or not set
     if (
         scheduler_thread is None
@@ -129,18 +129,26 @@ def get_locks():
 @app.route("/api/locks", methods=["DELETE"])
 def release_all_locks_api():
     """Release all locks."""
-    release_all_locks()
-    return jsonify({"status": "All locks released."}), 200
+    try:
+        release_all_locks()
+        return jsonify({"status": "All locks released."}), 200
+    except Exception as e:
+        logging.error("Error releasing all locks: %s", e)
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/locks/<flow_name>", methods=["DELETE"])
 def release_lock_api(flow_name):
     """Release a specific lock."""
     lock_path = os.path.join(LOCK_PATH, f"{flow_name}.lock")
-    if os.path.exists(lock_path):
+    try:
         release_lock(flow_name)
         return jsonify({"status": f"Lock for {flow_name} released."}), 200
-    else:
+    except FileNotFoundError:
+        logging.error("Error releasing lock: %s", e)
         return jsonify({"error": f"No lock found for {flow_name}."}), 404
+    except Exception as e:
+        logging.error("Error releasing lock: %s", e)
+        return jsonify({"error": str(e)}), 500
 
 # Grouped under /api/flows
 
@@ -161,13 +169,15 @@ def remove_flow(flow_id):
     """Remove a flow from the scheduler by ID."""
     if not scheduler_instance:
         return jsonify({"error": "Scheduler is not running"}), 500
-
-    success = scheduler_instance.remove_flow(flow_id)
-    if success:
-        return jsonify({"status": f"Flow with ID '{flow_id}' removed successfully"}), 200
-    else:
-        return jsonify({"error": f"Flow with ID '{flow_id}' not found"}), 404
-
+    try:
+        message = scheduler_instance.remove_flow(flow_id)
+        return jsonify({"status": message}), 200
+    except FlowNotFoundException as e:
+        return jsonify({"error": str(e)}), 404
+    except Exception as e:
+        logging.error("Error removing flow: %s", e)
+        return jsonify({"error": str(e)}), 500
+    
 @app.route("/api/flows/launch", methods=["POST"])
 def launch_flow():
     """Launch a flow, ensuring no duplicate runs."""
@@ -183,8 +193,12 @@ def launch_flow():
 
     try:
         create_lock(flow_name)
-        Flow(path=flow_path, payload=payload).process()
-        return jsonify({"status": f"Flow {flow_name} executed successfully."}), 200
+        message = Flow(path=flow_path, payload=payload).process()
+        return jsonify({"status": message}), 200
+    except FlowAlreadyRunningException as e:
+        return jsonify({"error": str(e)}), 409
+    except FlowNotFoundException as e:
+        return jsonify({"error": str(e)}), 404
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
@@ -212,10 +226,12 @@ def add_flow_to_scheduler():
             return jsonify({"status": f"Flow '{flow_path}' added successfully", "flow_id": flow_id}), 201
         else:
             return jsonify({"error": "Failed to add flow"}), 500
+    except FlowNotFoundException as e:
+        return jsonify({"error": str(e)}), 404
     except FlowAlreadyAddedException as e:
         return jsonify({"error": str(e)}), 409
     except Exception as e:
-        logging.error(f"Failed to add flow: {e}")
+        logging.error("Error adding flow: %s", e)
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":

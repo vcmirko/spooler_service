@@ -88,7 +88,7 @@ class Flow:
                     # check if the step has ignore_errors, if so, we will ignore the error if the regex matches
                     for err_regex in step.get("ignore_errors", []):
                         if re.match(err_regex, error_one_line):
-                            logging.warning(f"{self._representation} Ignoring error based on regex: {err_regex}")
+                            logging.warning(f"{self._representation} Ignoring error in step {step['name']}: {str(e)}")
                             error_obj["ignored"] = f"Error ignored based on regex: {err_regex}"
                             continue_step = True
                             break
@@ -100,14 +100,14 @@ class Flow:
                         raise e
         except Exception as e:
             # we silent the error here, the flow failed, the error will be logged
-            logging.error(f"{self._representation} Flow failed, check __errors__ for details")
+            logging.error(f"{self._representation} Error in flow: {str(e)}")
 
             try:
                 finally_step = next((s for s in self._steps if s["name"] == self._finally_step), None)
                 # call the step factory to create the finally step object on failure
                 if finally_step:
                     logging.info(f"{self._representation} Calling finally step {self._finally_step}")
-                    create_step(finally_step, self).process()
+                    create_step(finally_step, self).process(True) # run with ignore_when=True, finally always runs
 
             except Exception as e:
                 logging.error(f"{self._representation} Error in finally step {self._finally_step}: {str(e)}")

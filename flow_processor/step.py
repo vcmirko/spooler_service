@@ -27,16 +27,18 @@ class Step():
             return True
 
         for condition in self._when:
-            logging.debug(f"Evaluating condition: {{{{ {condition} }}}}")
+            logging.debug("Evaluating condition: {{ %s }}", condition)
             result = apply_jinja2(f"{{{{ {condition} }}}}", self._flow._data)
-            logging.debug(f"Condition result: {result}")
+            logging.debug("Condition result: %s", result)
             if not result.lower() in ["true", "1", "yes"]:  # Treat only "true", "1", or "yes" as True
                 return False
         return True
     
-    def pre_process(self):
+    def pre_process(self, ignore_when=False):
         """Pre-process the step."""
         # Check 'when' conditions
+        if(ignore_when):
+            return True
         return self._evaluate_when()
 
     def process(self):

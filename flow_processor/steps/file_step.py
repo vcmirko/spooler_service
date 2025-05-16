@@ -17,15 +17,15 @@ class FileStep(Step):
         self._file_type = self._file.get("type", "yaml")
         self._file_mode = self._file.get("mode", "read")
 
-    def process(self):
+    def process(self, ignore_when=False):
         """Process the file step."""
 
         # check if the step is enabled
-        enabled = super().pre_process()
+        enabled = super().pre_process(ignore_when)
         if not enabled:
             return 
 
-        logging.info(f"[{self._flow._name}][{self._name}] -> {self._file_mode} {self._file_path}")
+        logging.info("%s -> %s %s", self._representation, self._file_mode, self._file_path)
 
         match self._file_mode:
             case "read":

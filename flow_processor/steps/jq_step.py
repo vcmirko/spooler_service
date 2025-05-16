@@ -14,14 +14,14 @@ class JqStep(Step):
         self._data_key = self._jq.get("data_key")
         self._data = self._flow._data.get(self._data_key, {})
 
-    def process(self):
+    def process(self, ignore_when=False):
         """Process the jq step."""
 
         # check if the step is enabled
-        enabled = super().pre_process()
+        enabled = super().pre_process(ignore_when)
         if not enabled:
             return 
 
-        logging.info(f"{self._representation} -> {self._expression}")
+        logging.info("%s -> %s", self._representation, self._expression)
         self._data = apply_jq_filter(self._data, self._expression)
         return super().process()    
