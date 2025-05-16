@@ -17,6 +17,8 @@ class JinjaStep(Step):
         if self._data_key:
             self._data = self._flow._data.get(self._data_key)
 
+        # debug logging
+        logging.debug(f"JinjaStep initialized with path: {self._path}")
 
     def process(self):
         """Process the jinja step."""
@@ -27,7 +29,7 @@ class JinjaStep(Step):
             return 
 
         logging.info(f"{self._representation} -> {self._path}")
-        self._data = apply_jinja2_from_file(self._path, self._flow._data)
+        self._data = apply_jinja2_from_file(self._path, self._data)
         match self._parse:
             case "json":
                 self._data = json.loads(self._data)
