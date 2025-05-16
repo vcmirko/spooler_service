@@ -15,7 +15,7 @@ steps:
   type: jinja
   result_key: ticket_patch
   jinja:
-    path: "templates/ticket_patch.j2"
+    path: "ticket_patch.j2"
     data_key: result
     parse: yaml
 

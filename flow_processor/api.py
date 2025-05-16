@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_swagger_ui import get_swaggerui_blueprint
-from flow_processor.config import API_PORT, API_TOKEN, LOCK_PATH, LOG_PATH, LOG_FORMAT, LOG_FILE_NAME, CONFIG_FILE, SWAGGER_URL, SWAGGER_JSON_PATH, FLOWS_PATH
+from flow_processor.config import API_PORT, API_TOKEN, LOCK_PATH, LOG_PATH, LOG_FORMAT, LOG_LEVEL, LOG_FILE_NAME, CONFIG_FILE, SWAGGER_URL, SWAGGER_JSON_PATH, FLOWS_PATH
 from flow_processor.locks import is_locked, create_lock, release_lock, release_all_locks, get_all_locks
 from flow_processor.flow import Flow
 from flow_processor.flow_scheduler import FlowScheduler
@@ -21,16 +21,17 @@ CORS(app)
 log_file_path = os.path.join(LOG_PATH, LOG_FILE_NAME)
 file_handler = logging.FileHandler(log_file_path)
 file_handler.setFormatter(logging.Formatter(LOG_FORMAT))
-file_handler.setLevel(logging.INFO)
+file_handler.setLevel(LOG_LEVEL)
 
 # Attach file handler to root logger and app.logger
 logging.getLogger().addHandler(file_handler)
-logging.getLogger().setLevel(logging.INFO)
+logging.getLogger().setLevel(LOG_LEVEL)
 app.logger.propagate = True
 
-# Global scheduler instance and event
+# Global scheduler instance and event and thread
 scheduler_instance = None
 scheduler_ready = Event()
+scheduler_thread = None
 
 def start_scheduler():
     global scheduler_instance
@@ -53,21 +54,33 @@ def start_scheduler():
     while True:
         time.sleep(1)
 
+
+
 def initialize_scheduler():
-    if not scheduler_ready.is_set():
+    global scheduler_instance, scheduler_thread
+    logging.info("Initializing scheduler")
+    # Start if thread is not alive or not set
+    if (
+        scheduler_thread is None
+        or not scheduler_thread.is_alive()
+        or scheduler_instance is None
+        or not scheduler_ready.is_set()
+    ):
         scheduler_thread = Thread(target=start_scheduler, daemon=True)
         scheduler_thread.start()
         scheduler_ready.wait()
         logging.info("Scheduler initialized and ready.")
+    else:
+        logging.info("Scheduler is already running.")
 
 # --- Only for testing: add StreamHandler for console output ---
 def run_app():
     stream_handler = logging.StreamHandler()
     stream_handler.setFormatter(logging.Formatter(LOG_FORMAT))
-    stream_handler.setLevel(logging.INFO)
+    stream_handler.setLevel(LOG_LEVEL)
     logging.getLogger().addHandler(stream_handler)
     logging.info("Starting Flask app with embedded scheduler (test mode)")
-    initialize_scheduler()
+    
     app.run(port=API_PORT, use_reloader=False)
 
 # --- Always initialize scheduler, even when running under Gunicorn ---

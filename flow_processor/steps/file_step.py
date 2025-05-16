@@ -33,9 +33,11 @@ class FileStep(Step):
                     data = file.read()
                     self._data = self._parse_data(data, self._file_type)
             case "write":
+                os.makedirs(os.path.dirname(self._file_path), exist_ok=True)
                 with open(self._file_path, "w") as file:
                     self._write_data(file, self._file_type)
             case "append":
+                os.makedirs(os.path.dirname(self._file_path), exist_ok=True)
                 with open(self._file_path, "a") as file:
                     self._write_data(file, self._file_type)
             case _:

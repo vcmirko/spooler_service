@@ -1,6 +1,6 @@
 name: Process snow tickets
-cron: "*/1 * * * *"
-# every_seconds: 10
+# cron: "*/1 * * * *"
+every_seconds: 5
 steps:
 - name: get new tickets from service now
   type: rest
@@ -15,25 +15,24 @@ steps:
       type: basic
       secret: sow_credential
   jq_expression: ".result"
+  
 
 - name: loop tickets to awx
   type: flow_loop
   result_key: flow_loop
   flow_loop:
-    path: flows/ticket_to_awx.yml
+    path: ticket_to_awx.yml
     data_key: tickets
   when: 
   - "tickets | length > 0"
-  - "tickets | length < 5"
-  ignore_errors:
-  - ".*400*"
+  
 
 - name: dump result
   type: file
   file:
     type: yaml
     data_key: "."
-    method: write
-    path: output/process_sow_jobs_result_{{ __timestamp__ }}.yml
+    mode: write
+    path: output/process_snow_jobs_result_{{ __timestamp__ }}.yml
   when:
   - "tickets | length > 0"

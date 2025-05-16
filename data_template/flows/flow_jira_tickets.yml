@@ -44,5 +44,5 @@ steps:
   file:
     type: yaml
     data_key: "."
-    method: write
+    mode: write
     path: output/result_{{ __timestamp__ }}.yml

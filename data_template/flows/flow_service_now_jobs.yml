@@ -21,7 +21,7 @@ steps:
   type: flow_loop
   result_key: flow_loop
   flow_loop:
-    path: flows/check_awx_job.yml
+    path: check_awx_job.yml
     data_key: tickets
   when:
   - "tickets | length > 0"
@@ -31,7 +31,7 @@ steps:
   file:
     type: yaml
     data_key: "."
-    method: write
-    path: output/process_sow_tickets_result_{{ __timestamp__ }}.yml
+    mode: write
+    path: output/process_snow_tickets_result_{{ __timestamp__ }}.yml
   when:
   - "tickets | length > 0"

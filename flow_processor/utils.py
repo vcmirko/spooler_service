@@ -2,7 +2,7 @@ import os
 import jinja2
 import jq
 import logging
-from flow_processor.config import BASE_PATH, TEMPLATES_PATH
+from flow_processor.config import TEMPLATES_PATH
 
 def apply_jinja2(template, data):
     """Apply Jinja2 templating to the data."""

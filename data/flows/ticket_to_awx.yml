@@ -17,7 +17,7 @@ steps:
   result_key: extravars
   jinja:
     data_key: __input__
-    path: "templates/extravars.j2"
+    path: "extravars.j2"
     parse: json
   jq_expression: "{extra_vars: . }"
 

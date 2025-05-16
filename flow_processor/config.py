@@ -37,6 +37,7 @@ TEMPLATES_PATH.mkdir(exist_ok=True)
 SECRETS_PATH = Path(os.getenv("SECRETS_PATH", DATA_PATH / "secrets.yml"))
 
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
 # Environment variables for API
 API_PORT = int(os.getenv("API_PORT", 5000))
