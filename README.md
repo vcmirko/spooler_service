@@ -58,7 +58,6 @@ The **DATA_PATH** is the root path for all custom files, including the config, s
 | **SECRETS_PATH** | Path to the secrets file                    | `data/secrets.yml`     |
 | **CONFIG_FILE**  | Path to the configuration file              | `data/config.yml`      |
 | **API_PORT**     | Port for the API server                     | `5000`                 |
-| **API_PROTOCOL** | Protocols for the API server (comma-separated) | `http`             |
 | **API_TOKEN**    | Token for API authentication                | `default_token`        |
 
 # security

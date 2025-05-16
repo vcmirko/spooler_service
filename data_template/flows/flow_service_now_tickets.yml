@@ -1,0 +1,39 @@
+name: Process snow tickets
+cron: "*/1 * * * *"
+# every_seconds: 10
+steps:
+- name: get new tickets from service now
+  type: rest
+  result_key: tickets
+  rest:
+    uri: "https://dev226512.service-now.com/api/now/table/x_1734579_storag_0_ansible_request"
+    query:
+      sysparm_query: request_type=ansible^status=new
+      sysparm_fields: sys_id,sys_created_by,payload,sys_created,sys_created_on,job_id
+      sysparm_limit: 5
+    authentication:
+      type: basic
+      secret: sow_credential
+  jq_expression: ".result"
+
+- name: loop tickets to awx
+  type: flow_loop
+  result_key: flow_loop
+  flow_loop:
+    path: flows/ticket_to_awx.yml
+    data_key: tickets
+  when: 
+  - "tickets | length > 0"
+  - "tickets | length < 5"
+  ignore_errors:
+  - ".*400*"
+
+- name: dump result
+  type: file
+  file:
+    type: yaml
+    data_key: "."
+    method: write
+    path: output/process_sow_jobs_result_{{ __timestamp__ }}.yml
+  when:
+  - "tickets | length > 0"

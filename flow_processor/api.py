@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_swagger_ui import get_swaggerui_blueprint
-from flow_processor.config import API_PORT, API_TOKEN, API_HOST, LOCK_PATH, API_PROTOCOLS, LOG_PATH, LOG_FORMAT, LOG_FILE_NAME, CONFIG_FILE, SWAGGER_URL, SWAGGER_JSON_PATH, FLOWS_PATH
+from flow_processor.config import API_PORT, API_TOKEN, LOCK_PATH, LOG_PATH, LOG_FORMAT, LOG_FILE_NAME, CONFIG_FILE, SWAGGER_URL, SWAGGER_JSON_PATH, FLOWS_PATH
 from flow_processor.locks import is_locked, create_lock, release_lock, release_all_locks, get_all_locks
 from flow_processor.flow import Flow
 from flow_processor.flow_scheduler import FlowScheduler
@@ -66,8 +66,7 @@ def run_app():
     stream_handler.setFormatter(logging.Formatter(LOG_FORMAT))
     stream_handler.setLevel(logging.INFO)
     logging.getLogger().addHandler(stream_handler)
-    logging.addHandler(stream_handler)
-    logging.logger.info("Starting Flask app with embedded scheduler (test mode)")
+    logging.info("Starting Flask app with embedded scheduler (test mode)")
     initialize_scheduler()
     app.run(port=API_PORT, use_reloader=False)
 
@@ -81,13 +80,20 @@ def get_swagger_json():
         swagger_json = json.load(f)
 
     # Dynamically modify the Swagger JSON
-    swagger_json["host"] = f"{API_HOST}:{API_PORT}"  # Set the host dynamically
-    swagger_json["schemes"] = API_PROTOCOLS
+    # Optionally, you can remove or avoid setting "host" and "schemes" to let Swagger UI use the current browser location.
+    swagger_json.pop("host", None)
+    swagger_json.pop("schemes", None)
     return jsonify(swagger_json)
 
 # Register Swagger UI
 swaggerui_blueprint = get_swaggerui_blueprint(SWAGGER_URL, "/static/swagger.json")
-app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
+app.register_blueprint(
+    swaggerui_blueprint, 
+    url_prefix=SWAGGER_URL,
+    config={
+        'validatorUrl': None  # This disables the online validator
+    }
+)
 
 @app.before_request
 def validate_token():

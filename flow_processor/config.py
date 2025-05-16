@@ -39,13 +39,11 @@ SECRETS_PATH = Path(os.getenv("SECRETS_PATH", DATA_PATH / "secrets.yml"))
 LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
 
 # Environment variables for API
-API_HOST = os.getenv("API_HOST", "localhost")
 API_PORT = int(os.getenv("API_PORT", 5000))
-API_PROTOCOLS = os.getenv("API_PROTOCOL", "http").split(",")  # Comma-separated string to list
 API_TOKEN = os.getenv("API_TOKEN", "default_token")
 
 # Swagger configuration // fixed, but could be moved to environment variables
-SWAGGER_URL = "/api/docs"
+SWAGGER_URL = "/api/docs/"
 SWAGGER_JSON_PATH = os.path.join(BASE_PATH, "static/swagger.json")
 
 # Configuration file for the flow processor
