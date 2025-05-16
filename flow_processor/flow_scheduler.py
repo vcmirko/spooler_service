@@ -63,7 +63,12 @@ class FlowScheduler:
     def schedule_cron(self, cron_expression, flow_path):
         """Schedule a flow using a cron expression."""
         def job():
-            self.run_flow(flow_path)
+            try:
+                self.run_flow(flow_path)
+            except FlowAlreadyRunningException as e:
+                logging.warning(e)
+            except Exception as e:
+                logging.error("Error running flow %s: %s", flow_path, e)
 
         # Use croniter to calculate the next run time
         def cron_job():
