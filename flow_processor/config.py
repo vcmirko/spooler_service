@@ -8,6 +8,8 @@ from pathlib import Path
 # - DATA_PATH: Path to the data directory.
 # - LOCK_PATH: Path to the directory for lock files.
 # - LOG_PATH: Path to the directory for log files.
+# - LOG_FILE_NAME: Name of the log file.
+# - LOG_LEVEL: Logging level (default is INFO).
 # - FLOWS_PATH: Path to the directory for flow files.
 # - TEMPLATES_PATH: Path to the directory for template files.
 # - SECRETS_PATH: Path to the secrets file.

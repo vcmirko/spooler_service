@@ -53,6 +53,8 @@ The **DATA_PATH** is the root path for all custom files, including the config, s
 | **DATA_PATH**    | Path to the data directory                  | `data/`                |
 | **LOCK_PATH**    | Path to the directory for lock files        | `data/locks/`          |
 | **LOG_PATH**     | Path to the directory for log files         | `data/logs/`           |
+| **LOG_FILE_NAME** | Name of the log file                      | `spooler_service.log`  |
+| **LOG_LEVEL**    | Log level for the application               | `INFO`                 |
 | **FLOWS_PATH**   | Path to the directory for flow files        | `data/flows/`          |
 | **TEMPLATES_PATH** | Path to the directory for template files  | `data/templates/`      |
 | **SECRETS_PATH** | Path to the secrets file                    | `data/secrets.yml`     |
