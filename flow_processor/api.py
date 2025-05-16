@@ -91,7 +91,7 @@ app.register_blueprint(
     swaggerui_blueprint, 
     url_prefix=SWAGGER_URL,
     config={
-        'validatorUrl': None  # This disables the online validator
+        'validatorUrl': "localhost"
     }
 )
 

@@ -43,7 +43,7 @@ API_PORT = int(os.getenv("API_PORT", 5000))
 API_TOKEN = os.getenv("API_TOKEN", "default_token")
 
 # Swagger configuration // fixed, but could be moved to environment variables
-SWAGGER_URL = "/api/docs/"
+SWAGGER_URL = "/api/docs"
 SWAGGER_JSON_PATH = os.path.join(BASE_PATH, "static/swagger.json")
 
 # Configuration file for the flow processor
