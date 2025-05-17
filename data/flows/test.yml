@@ -16,23 +16,3 @@ steps:
       secret: snow_credential
   jq_expression: ".result"
   
-
-- name: loop tickets to awx
-  type: flow_loop
-  result_key: flow_loop
-  flow_loop:
-    path: ticket_to_awx.yml
-    data_key: tickets
-  when: 
-  - "tickets | length > 0"
-  
-
-- name: dump result
-  type: file
-  file:
-    type: yaml
-    data_key: "."
-    mode: write
-    path: output/process_snow_jobs_result_{{ __timestamp__ }}.yml
-  when:
-  - "tickets | length > 0"

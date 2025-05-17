@@ -1,7 +1,7 @@
 import logging
 import yaml
 import re
-from .factory import create_step
+from .step_factory import create_step
 from flow_processor.utils import make_timestamp
 from flow_processor.config import FLOWS_PATH, SECRETS_PATH
 import os

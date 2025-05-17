@@ -96,22 +96,29 @@ class RestStep(Step):
         """Generate authentication headers."""
         auth_type = self._authentication.get("type")
         secret_name = self._authentication.get("secret")
+
         secret = super()._get_secret(secret_name)
 
         match auth_type:
             case "token":
                 token = secret.get("token")
                 if not token:
-                    raise Exception(f"Token not found in secret {secret_name}")
+                    raise Exception(f"Secret '{secret_name}' missing 'token' property")
                 bearer = self._authentication.get("bearer", "Bearer")
                 return {"Authorization": f"{bearer} {token}"}
             case "basic":
                 username = secret.get("username")
                 password = secret.get("password")
                 if not username or not password:
-                    raise Exception(f"Username or password missing in secret {secret_name}")
+                    raise Exception(f"Secret '{secret_name}' missing 'username' or 'password' property")
                 basic_auth = base64.b64encode(f"{username}:{password}".encode()).decode()
                 return {"Authorization": f"Basic {basic_auth}"}
+            case "api_key":
+                api_key_value = secret.get("value")
+                api_key_name = secret.get("key")
+                if not api_key_value or not api_key_name:
+                    raise Exception(f"Secret '{secret_name}' missing API key 'key' or 'value' property")   
+                return {api_key_name: api_key_value}
             case _:
                 raise Exception(f"Unsupported authentication type: {auth_type}")
 

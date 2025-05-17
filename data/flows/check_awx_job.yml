@@ -28,7 +28,7 @@ steps:
     method: patch
     authentication:
       type: basic
-      secret: sow_credential
+      secret: snow_credential
     data_key: ticket_patch
 # #   ignore_errors:
 #   - ".*400*"

@@ -1,4 +1,6 @@
 from flow_processor.utils import apply_jinja2
+from flow_processor.secret_factory import SecretFactory
+from flow_processor.exceptions import SecretNotFoundException
 import logging
 
 class Step():
@@ -59,11 +61,11 @@ class Step():
         return self._data
 
     def _get_secret(self, name):
-        """Retrieve a secret by name."""
-        secret = next((s for s in self._flow._secrets if s["name"] == name), None)
-        if not secret:
-            raise Exception(f"Secret {name} not found")
-        return secret    
+        secret_def = next((s for s in self._flow._secrets if s["name"] == name), None)
+        if not secret_def:
+            raise SecretNotFoundException(f"Secret {name} not found")
+        secret = SecretFactory.load(secret_def)
+        return secret
 
     def _get_data_by_key(self, key=None):
         """Retrieve data by key."""

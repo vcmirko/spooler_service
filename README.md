@@ -61,11 +61,13 @@ The **DATA_PATH** is the root path for all custom files, including the config, s
 | **CONFIG_FILE**  | Path to the configuration file              | `data/config.yml`      |
 | **API_PORT**     | Port for the API server                     | `5000`                 |
 | **API_TOKEN**    | Token for API authentication                | `default_token`        |
+| **HASHICORP_VAULT_TOKEN** | Token for HashiCorp Vault authentication |         |
 
 # security
 
 we will be using several types of secrets, username/password, tokens... 
-these could be hardcoded in the secrets config file, or could be grabbed from hashicorp vault.
+these could be hardcoded in the secrets file, or could be grabbed from hashicorp vault.
+We use a base `Secret` class, with a `scecret_factory.py` to create types of secrets.  The secrets are stored in the `secrets.yml` file.  The `hashicorp-vault` secret has 1 minute TTL, so it doesn't hit the vault too often, and requires the `HASHICORP_VAULT_TOKEN` environment variable to be set. 
 
 `secrets.yml`
 
@@ -77,8 +79,15 @@ these could be hardcoded in the secrets config file, or could be grabbed from ha
 - name: secretY
   type: token
   token: yyy
-# TODO grab from hashicorp vault
+- name: servicenow
+  type: hashicorp-vault
+  uri: https://vault.example.com/v1/test/data/servicenow
 ```
+
+Future ideas:
+- Use a secrets manager (AWS Secrets Manager, Azure Key Vault, etc.) to store the secrets
+- Use a database to store the secrets
+- CyberArk
 
 **API_TOKEN**   
 
@@ -165,6 +174,13 @@ The rest step is a step that will call a REST API (GET, POST, PUT, DELETE, PATCH
 | **headers** | The headers for the REST API (JSON)                                                          |                                         |         |
 | **body**    | The body for the REST API (JSON)                                                             |                                         |         |
 | **data_key**| The key used to grab the data from the **_data** property to send to the REST API            | Higher in hierarchy than **body**       |         |
+| **authentication** | The authentication dict                                |                                         |         |
+
+| Property   | Description                                                                                       | Notes / Default                |
+|------------|---------------------------------------------------------------------------------------------------|-------------------------------|
+| **type**   | The type of authentication                                                                        | `basic`, `token`, `api-key` (header key-value) |
+| **secret** | The secret to use for authentication                                                              | Should return the proper type  |
+| **bearer** | The bearer prefix to use for token authentication (e.g., `Bearer <token>`)                        | Default: `Bearer`              |
 
 ## The jq step
 

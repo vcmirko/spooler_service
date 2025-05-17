@@ -43,7 +43,7 @@ steps:
     method: patch
     authentication:
       type: basic
-      secret: sow_credential
+      secret: snow_credential
     data_key: job_id
 #   ignore_errors:
 #   - ".*400*"

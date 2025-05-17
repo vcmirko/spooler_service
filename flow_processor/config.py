@@ -51,3 +51,5 @@ SWAGGER_JSON_PATH = os.path.join(BASE_PATH, "static/swagger.json")
 
 # Configuration file for the flow processor
 CONFIG_FILE = Path(os.getenv("CONFIG_FILE", DATA_PATH / "config.yml"))
+
+HASHICORP_VAULT_TOKEN = os.getenv("HASHICORP_VAULT_TOKEN", None)
