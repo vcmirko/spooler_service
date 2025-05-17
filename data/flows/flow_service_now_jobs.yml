@@ -13,7 +13,7 @@ steps:
       sysparm_limit: 50
     authentication:
       type: basic
-      secret: sow_credential
+      secret: snow_credential
 
   jq_expression: ".result"
 

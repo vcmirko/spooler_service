@@ -25,7 +25,7 @@ class FlowLoopStep(Step):
             return 
 
         logging.info("%s -> %s", self._representation, self._path)
-        from flow_processor import Flow # recursive import
+        from flow_processor.flow import Flow # recursive import
 
         # Load the flow and process it
         self._data = []
