@@ -2,29 +2,9 @@
 
 The main principle of the application is to create flows.  A flow is a set of steps that will be executed in order.  
 
-TODO : a proper name, I like the idea of an octopus, grabbing and passing data with it's tentacles.
+TODO : a proper name, octoflow ?, grabbing and passing data with it's tentacles.
 
 ```
-├── README.md
-├── main.py
-├── flow_processor/
-│   ├── __init__.py
-│   ├── api.py
-│   ├── flow_scheduler.py
-|   ├── flow.py
-│   ├── locks.py
-│   ├── factory.py
-|   ├── steps.py
-│   ├── config.py
-│   ├── utils.py
-│   ├── steps/
-│   │   ├── file_step.py
-│   │   ├── rest_step.py
-│   │   ├── jq_step.py
-│   │   ├── jinja_step.py
-│   │   ├── flow_step.py
-│   │   ├── flow_loop_step.py
-│   │   └── jira_fields_step.py
 ├── data/
 │   ├── config.yml
 │   ├── secrets.yml
