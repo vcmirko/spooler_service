@@ -109,6 +109,7 @@ We use the `factory.py` to create the steps.  Currently these are the steps that
 | **FlowStep**          | Calls another flow                                                                           |
 | **FlowLoopStep**      | Calls another flow in a loop                                                                 |
 | **JiraNamesMergeStep**| Reformats fields from Jira results, merging the names/labels                                 |
+| **DebugStep**         | Debug step, logs data                                                  |
 
 Some ideas for future steps:
 - **SwitchStep**: a step that will switch the data (if/else) or (match/case)
@@ -156,6 +157,35 @@ The rest step is a step that will call a REST API (GET, POST, PUT, DELETE, PATCH
 | **data_key**| The key used to grab the data from the **_data** property to send to the REST API            | Higher in hierarchy than **body**       |         |
 | **authentication** | The authentication dict                                |                                         |         |
 
+Example of rest step with authentication:
+
+```yaml
+- name: get template demo
+  type: rest
+  result_key: template_info
+  rest:
+    uri: https://awx.demo.com/api/v2/job_templates/
+    query:
+      name: Demo Job Template
+    authentication: 
+      type: basic
+      secret: awx_credential
+  jq_expression: ".results[0] | {id:.id, name:.name,related:.related}"
+
+- name: post extravars to awx
+  type: rest
+  description: post extravars to awx
+  result_key: job_id
+  rest:
+    uri: "https://awx.demo.com{{template_info.related.launch}}"
+    method: post
+    authentication: 
+      type: basic
+      secret: awx_credential
+    data_key: extravars 
+  jq_expression: "{job_id:.id, status:\"running\"}"
+```
+
 | Property   | Description                                                                                       | Notes / Default                |
 |------------|---------------------------------------------------------------------------------------------------|-------------------------------|
 | **type**   | The type of authentication                                                                        | `basic`, `token`, `api-key` (header key-value) |
@@ -181,6 +211,19 @@ The jinja step is a step that will use jinja2 to transform the data.
 | **data_key**| The key used to grab the data from the **_data** property to transform                       |                                         |         |
 | **parse**   | Optionally parse the data as JSON or YAML                                                    | No parsing, just a string               |         |
 
+Example of jinja step:
+
+```yaml
+- name: prepare extravars
+  type: jinja
+  result_key: extravars
+  jinja:
+    data_key: __input__
+    path: "extravars.j2"
+    parse: json
+  jq_expression: "{extra_vars: . }"
+```
+
 ## The flow step
 
 The flow step is a step that will call another flow. Useful for reusing flows and creating complex flows.
@@ -198,6 +241,38 @@ The flow loop step is a step that will call another flow in a loop.
 |-------------|----------------------------------------------------------------------------------------------|-----------------------------------------|---------|
 | **path**    | The path to the flow to call                                                                 | Relative to FLOWS_PATH                  |         |
 | **data_key**| The key used to grab the data from the **_data** property to send to the flow                | Must be a list of items to loop over    |         |
+
+Example of flow with rest and flow loop step:
+
+```yaml
+name: Process snow tickets
+# cron: "*/1 * * * *"
+every_seconds: 5
+steps:
+- name: get new tickets from service now
+  type: rest
+  result_key: tickets
+  rest:
+    uri: "https://dev.service-now.com/api/now/table/x_xxxx"
+    query:
+      sysparm_query: request_type=ticket^status=new
+      sysparm_fields: sys_id,sys_created_by,payload,sys_created,sys_created_on,job_id
+      sysparm_limit: 5
+    authentication:
+      type: basic
+      secret: snow_credential
+  jq_expression: ".result"
+  
+
+- name: loop tickets to awx
+  type: flow_loop
+  result_key: flow_loop
+  flow_loop:
+    path: ticket_to_awx.yml
+    data_key: tickets
+  when: 
+  - "tickets | length > 0"
+```
 
 ## The jira names merge step
 
