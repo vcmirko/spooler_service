@@ -16,20 +16,25 @@ steps:
       type: basic
       secret: jira_credential
 
-# - name: merge custom fields
-#   type: jira_names_merge
-#   result_key: tickets
-#   jira_fields:
-#     data_key: tickets_raw
-#     list_key: issues
-#   jq_expression: "[.[] | {id:.id, key:.key, self:.self}]"
+- name: merge custom fields
+  type: jira_names_merge
+  result_key: tickets
+  jira_names_merge:
+    data_key: tickets_raw
+    list_key: issues
+  jq_expression: "[.[] | {id:.id, key:.key, self:.self}]"
 
-# - name: loop tickets to awx
-#   type: flow_loop
-#   result_key: flow_loop
-#   flow_loop:
-#     path: flows/ticket_to_awx.yml
+# - name: debug
+#   type: debug
+#   debug:
 #     data_key: tickets
+
+- name: loop tickets to awx
+  type: flow_loop
+  result_key: flow_loop
+  flow_loop:
+    path: ticket_to_awx_jira.yml
+    data_key: tickets
 
 # - name: dump result
 #   type: file

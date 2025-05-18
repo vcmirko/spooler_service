@@ -6,14 +6,13 @@ class JiraNamesMergeStep(Step):
     """Subclass for file operations."""
     def __init__(self, step, flow):
         super().__init__(step, flow)
-        assert "jira_names_merge" in step, "Jira fields configuration is required"
+        assert "jira_names_merge" in step, "Jira names merge configuration is required"
         self._jira_names_merge = step.get("jira_names_merge")
         self._list_key = self._jira_names_merge.get("list_key", "issues")
         assert "data_key" in self._jira_names_merge, "issues key is required"
-        assert "names" in self._jira_names_merge, "names key is required, add expand=names to the jira query"
 
     def process(self, ignore_when=False):
-        """Process the Jira fields step."""
+        """Process the Jira names merge step."""
 
         # check if the step is enabled
         enabled = super().pre_process(ignore_when)
@@ -23,7 +22,9 @@ class JiraNamesMergeStep(Step):
         logging.info("%s -> Transpose Jira customfields with names", self._representation)
         data = self._flow._data.get(self._jira_names_merge.get("data_key"))
         issues = data.get(self._list_key, [])
-        field_names = data.get("names", [])
+        field_names = data.get("names", None)
+        if field_names is None:
+            raise Exception(f"Field names not found in {self._list_key} list, add expand=names to the query")
         
         # clone issues to self._data by value, not reference
         self._data = [issue.copy() for issue in issues]

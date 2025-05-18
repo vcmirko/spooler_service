@@ -1,0 +1,83 @@
+name: launch template for ticket
+steps: 
+# - name: get template demo
+#   type: rest
+#   result_key: template_info
+#   rest:
+#     uri: https://awx.charko.be/api/v2/job_templates/
+#     query:
+#       name: Demo Job Template
+#     authentication: 
+#       type: basic
+#       secret: awx_credential
+#   jq_expression: ".results[0] | {id:.id, name:.name,related:.related}"
+
+# - name: prepare extravars
+#   type: jinja
+#   result_key: extravars
+#   jinja:
+#     data_key: __input__
+#     path: "extravars.j2"
+#     parse: json
+#   jq_expression: "{extra_vars: . }"
+
+# - name: post extravars to awx
+#   type: rest
+#   description: post extravars to awx
+#   result_key: job_id
+#   rest:
+#     uri: "https://awx.charko.be{{template_info.related.launch}}"
+#     method: post
+#     authentication: 
+#       type: basic
+#       secret: awx_credential
+#     data_key: extravars 
+#   jq_expression: "{job_id:.id, status:\"running\"}"
+
+- name: get jira ticket transition to progress
+  type: rest
+  result_key: transition
+  rest:
+    uri: "{{ __input__.self }}/transitions"
+    authentication:
+      type: basic
+      secret: jira_credential
+  jq_expression: .transitions[] | select(.to.name == "In Progress")
+
+# - name: debug
+#   type: debug
+#   debug:
+#     data_key: transition
+
+- name: prepare transition update
+  type: jinja
+  result_key: transition_update
+  jinja:
+    data_key: transition
+    path: "transition.j2"
+    parse: yaml
+
+# - name: debug
+#   type: debug
+#   debug:
+#     data_key: transition_update
+#     type: yaml
+
+- name: update ticket status
+  type: rest
+  description: update ticket status
+  result_key: ticket_status
+  rest:
+    uri: "{{ __input__.self }}/transitions"
+    method: post
+    authentication:
+      type: basic
+      secret: jira_credential
+    body:
+      data_key: transition_update
+
+# - name: prepare insert statement
+#   type: jinja
+#   result_key: insert_statement
+#   jinja: 
+#     path: "templates/insert.j2"

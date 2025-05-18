@@ -1,0 +1,61 @@
+name: launch template for ticket
+steps: 
+- name: get awx job
+  type: rest
+  description: post extravars to awx
+  result_key: result
+  rest:
+    uri: "https://awx.charko.be/api/v2/jobs/{{__input__.job_id}}/"
+    authentication: 
+      type: basic
+      secret: awx_credential
+    data_key: job
+
+- name: prep ticket patch
+  type: jinja
+  result_key: ticket_patch
+  jinja:
+    path: "ticket_patch.j2"
+    data_key: result
+    parse: yaml
+
+- name: update ticket status
+  type: rest
+  description: update ticket status
+  result_key: ticket_status
+  rest:
+    uri: "https://dev226512.service-now.com/api/now/table/x_1734579_storag_0_ansible_request/{{__input__.sys_id}}"
+    method: patch
+    authentication:
+      type: basic
+      secret: snow_credential
+    data_key: ticket_patch
+# #   ignore_errors:
+#   - ".*400*"
+
+# - name: update ticket status
+#   type: rest
+#   description: update ticket status
+#   result_key: ticket_status
+#   rest:
+#     uri: "{{ __input__.self }}/transitions"
+#     method: post
+#     authentication:
+#       type: basic
+#       secret: jira_credential
+#     body:
+#       transition:
+#         id: 3
+#       update:
+#         comment:
+#           add: 
+#             body: "Ticket is being processed by AWX"
+#   ignore_errors:
+#   - ".*400*"
+
+
+# - name: prepare insert statement
+#   type: jinja
+#   result_key: insert_statement
+#   jinja: 
+#     path: "templates/insert.j2"

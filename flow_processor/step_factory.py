@@ -5,6 +5,7 @@ from .steps.jinja_step import JinjaStep
 from .steps.flow_loop_step import FlowLoopStep
 from .steps.flow_step import FlowStep
 from .steps.jira_names_merge_step import JiraNamesMergeStep
+from .steps.debug_step import DebugStep
 
 # Factory function
 def create_step(step, flow):
@@ -23,7 +24,9 @@ def create_step(step, flow):
             return FlowLoopStep(step, flow)
         case "flow":
             return FlowStep(step, flow)
-        case "jira_fields":
+        case "jira_names_merge":
             return JiraNamesMergeStep(step, flow)
+        case "debug":
+            return DebugStep(step, flow)
         case _:
             raise Exception(f"Unsupported step type: {step_type}")
