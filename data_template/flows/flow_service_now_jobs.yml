@@ -1,6 +1,5 @@
 name: Process snow tickets
-every_seconds: 5
-finally_step: dump result
+# finally_step: dump result
 steps:
 - name: get running tickets from service now
   type: rest
@@ -26,12 +25,12 @@ steps:
   when:
   - "tickets | length > 0"
 
-- name: dump result
-  type: file
-  file:
-    type: yaml
-    data_key: "."
-    mode: write
-    path: output/process_snow_tickets_result_{{ __timestamp__ }}.yml
-  when:
-  - "tickets | length > 0"
+# - name: dump result
+#   type: file
+#   file:
+#     type: yaml
+#     data_key: "."
+#     mode: write
+#     path: output/process_snow_tickets_result_{{ __timestamp__ }}.yml
+#   when:
+#   - "tickets | length > 0"

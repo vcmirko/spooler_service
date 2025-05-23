@@ -1,5 +1,4 @@
 name: Process jira tickets
-every_seconds: 5
 finally_step: dump result
 steps:
 
@@ -36,10 +35,10 @@ steps:
     path: ticket_to_awx_jira.yml
     data_key: tickets
 
-# - name: dump result
-#   type: file
-#   file:
-#     type: yaml
-#     data_key: "."
-#     mode: write
-#     path: output/result_{{ __timestamp__ }}.yml
+- name: dump result
+  type: file
+  file:
+    type: yaml
+    data_key: "."
+    mode: write
+    path: output/result_{{ __timestamp__ }}.yml

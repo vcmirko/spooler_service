@@ -1,6 +1,4 @@
 name: Process snow tickets
-# cron: "*/1 * * * *"
-every_seconds: 5
 steps:
 - name: get new tickets from service now
   type: rest
@@ -17,22 +15,32 @@ steps:
   jq_expression: ".result"
   
 
+- name: sleep before processing
+  type: sleep
+  sleep:
+    seconds: 5
+
+- name: exit early
+  type: exit
+  result_key: exit_info
+  exit:
+    message: "No data to process, exiting early."
+  when:
+  - "tickets | length == 0"  
+
 - name: loop tickets to awx
   type: flow_loop
   result_key: flow_loop
   flow_loop:
     path: ticket_to_awx.yml
     data_key: tickets
-  when: 
-  - "tickets | length > 0"
-  
 
-- name: dump result
-  type: file
-  file:
-    type: yaml
-    data_key: "."
-    mode: write
-    path: output/process_snow_jobs_result_{{ __timestamp__ }}.yml
-  when:
-  - "tickets | length > 0"
+# - name: dump result
+#   type: file
+#   file:
+#     type: yaml
+#     data_key: "."
+#     mode: write
+#     path: output/process_snow_jobs_result_{{ __timestamp__ }}.yml
+#   when:
+#   - "tickets | length > 0"

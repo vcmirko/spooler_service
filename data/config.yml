@@ -1,6 +1,0 @@
-autostart_flows: 
-- path: flow_service_now_jobs.yml
-  every_seconds: 30
-- path: flow_service_now_tickets.yml
-  every_seconds: 30
-

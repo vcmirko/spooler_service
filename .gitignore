@@ -1,7 +1,7 @@
 __pycache__/
 **/__pycache__/
 
-**data/secrets.yml
-**/logs/*.log
-
 .vscode/
+**jobs.sqlite**
+
+**/data/**
