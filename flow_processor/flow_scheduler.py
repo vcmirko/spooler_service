@@ -4,119 +4,206 @@ import time
 import os
 import yaml
 import uuid
+import threading
 from croniter import croniter
 from datetime import datetime
 from threading import Thread
-from flow_processor.config import FLOWS_PATH
-from flow_processor.locks import create_lock, release_lock, is_locked
 from flow_processor.flow import Flow
-from flow_processor.exceptions import NoScheduleException,FlowAlreadyAddedException,FlowAlreadyRunningException,FlowNotFoundException
+from flow_processor.config import FLOWS_PATH, FLOW_TIMEOUT_SECONDS
+from flow_processor.exceptions import NoScheduleException,FlowAlreadyAddedException,FlowAlreadyRunningException,FlowNotFoundException,FlowParsingException
+from flow_processor.flow_runner import FlowRunner
+
+# logging.basicConfig()
+# schedule_logger = logging.getLogger('schedule')
+# schedule_logger.setLevel(level=logging.DEBUG)
 
 class FlowScheduler:
     def __init__(self):
         self.flows = {}  # Dictionary to store added flows and their scheduling details
 
-    def add_flow(self, flow_path):
+    # Add a flow to the scheduler
+    def add_flow(self, flow):
+
+        #########################
+        # validate the flow
+
+
+        # Check if the flow is a dictionary
+        if not isinstance(flow, dict):
+            raise ValueError("Flow must be a dictionary with 'path' and scheduling details.")        
+
+        flow_path = flow.get("path")
+        cron = flow.get("cron")
+        every_seconds = flow.get("every_seconds")
+        timeout_seconds = flow.get("timeout_seconds", FLOW_TIMEOUT_SECONDS)
+
+        # assert flow_path is not None, "Flow path must be provided."
+        if not flow_path or not isinstance(flow_path, str):
+            raise ValueError("Flow path must be provided.")
+        
+        # assert cron is not None or every_seconds is not None, "Flow must have either 'cron' or 'every_seconds' defined."
+        if not cron and not every_seconds:
+            raise ValueError("Flow must have either 'cron' or 'every_seconds' defined.")
+
+        # assert every_seconds is integer, "every_seconds must be an integer."
+        if every_seconds and not isinstance(every_seconds, int):
+            raise ValueError("every_seconds must be an integer.")
+        
         # Load the flow YAML
         logging.info("Loading flow configuration from %s", flow_path)
-        try:
-            with open(os.path.join(FLOWS_PATH,flow_path), "r") as file:
-                flow_config = yaml.safe_load(file)
-        except Exception as e:
-            raise FlowNotFoundException(f"Failed to load flow configuration: {e}")
+
+        # Check if the flow file exists and parses well
+        Flow.validatePath(flow_path)
         
         # Check if the flow is not already added
-        if any(flow["path"] == flow_path for flow in self.flows.values()):
+        if any(f["path"] == flow_path for f in self.flows.values()):
             raise FlowAlreadyAddedException(f"Flow {flow_path} is already added to the scheduler.")
 
-        cron = flow_config.get("cron", None)
-        every_seconds = flow_config.get("every_seconds", None)
+        ######################################
+        # flow is valid, let's add it to the scheduler
+
+        # generate a unique ID for the flow
+        schedule_id = str(uuid.uuid4())
+
+        # add the flow to the scheduler
+        self.flows[schedule_id] = {
+            "path": flow_path,
+            "cron": cron,
+            "every_seconds": every_seconds,
+            "timeout_seconds": timeout_seconds
+        }   
+
         if cron:
             # Schedule the flow based on the cron property
-            self.schedule_cron(cron, flow_path)
-            logging.info("Scheduled flow %s with cron: %s", flow_path, cron)
+            self.schedule_cron(cron, flow_path, schedule_id,timeout_seconds)
         elif every_seconds:
             # Schedule the flow based on the every_seconds property
-            schedule.every(every_seconds).seconds.do(self.run_flow, flow_path)
-            logging.info("Scheduled flow %s to run every %d seconds", flow_path, every_seconds)
+            self.schedule_every_seconds(every_seconds, flow_path, schedule_id, timeout_seconds)
         else:
-            raise NoScheduleException(f"Flow {flow_path} does not have a valid schedule (cron or every_seconds).")
+            raise NoScheduleException(f"Flow {flow_path} was added without valid schedule (cron or every_seconds).")
 
-        # Generate a unique ID for the flow
-        flow_id = str(uuid.uuid4())
-        self.flows[flow_id] = {"path": flow_path, "cron": cron, "every_seconds": every_seconds}
-        logging.info("Added flow %s with ID: %s", flow_path, flow_id)
-        return flow_id
+        logging.info("Added flow %s with ID: %s", flow_path, schedule_id)
+        return schedule_id
 
-    def remove_flow(self, flow_id):
-        """Remove a flow from the scheduler by ID."""
-        if flow_id in self.flows:
-            del self.flows[flow_id]
-            return ("Removed flow with ID: %s", flow_id)
+    def remove_flow(self, schedule_id):
+        if schedule_id in self.flows:
+            # Cancel interval job if present
+            job = self.flows[schedule_id].get("job")
+            if job:
+                schedule.cancel_job(job)
+            # Stop cron thread if present
+            stop_event = self.flows[schedule_id].get("cron_stop_event")
+            thread = self.flows[schedule_id].get("cron_thread")
+            if stop_event:
+                stop_event.set()
+            if thread:
+                thread.join(timeout=5)  # Wait up to 5 seconds for the thread to finish
+            del self.flows[schedule_id]
+            return f"Removed flow with ID: {schedule_id}"
         else:
-            raise FlowNotFoundException(f"Flow with ID {flow_id} not found.")
+            raise FlowNotFoundException(f"Flow with ID {schedule_id} not found.")
 
     def list_flows(self):
         """List all added flows."""
-        return self.flows
 
-    def schedule_cron(self, cron_expression, flow_path):
-        """Schedule a flow using a cron expression."""
-        def job():
+        flows_list = []
+        for schedule_id, flow in self.flows.items():
+            flow_info = {
+                "id": schedule_id,
+                "path": flow.get("path"),
+                "cron": flow.get("cron"),
+                "every_seconds": flow.get("every_seconds"),
+                "timeout_seconds": flow.get("timeout_seconds"),
+                "last_job_id": flow.get("last_job_id"),
+                "running": bool(flow.get("running", False)),
+            }
+            flows_list.append(flow_info)
+        return flows_list
+    
+    def schedule_every_seconds(self, every_seconds, flow_path, schedule_id, timeout_seconds):
+        """Schedule a flow to run every X seconds."""
+        def job_wrapper():
             try:
-                self.run_flow(flow_path)
+                # You can set a default timeout here if you want
+                self.run_scheduled_flow(flow_path, timeout=timeout_seconds, schedule_id=schedule_id, every_seconds=every_seconds)
             except FlowAlreadyRunningException as e:
                 logging.warning(e)
             except Exception as e:
                 logging.error("Error running flow %s: %s", flow_path, e)
 
-        # Use croniter to calculate the next run time
+        job = schedule.every(every_seconds).seconds.do(job_wrapper)
+        self.flows[schedule_id]["job"] = job
+        logging.info("Scheduled flow %s to run every %d seconds", flow_path, every_seconds)
+
+    def schedule_cron(self, cron_expression, flow_path, schedule_id, timeout_seconds):
+        """Schedule a flow using a cron expression."""
+        stop_event = threading.Event()
+
+        def job_wrapper():
+            try:
+                self.run_scheduled_flow(flow_path, timeout=timeout_seconds, schedule_id=schedule_id, cron=cron_expression)
+            except FlowAlreadyRunningException as e:
+                logging.warning(e)
+            except Exception as e:
+                logging.error("Error running flow %s: %s", flow_path, e)
+
         def cron_job():
-            while True:
+            while not stop_event.is_set():
                 now = datetime.now()
                 cron = croniter(cron_expression, now)
                 next_run = cron.get_next(datetime)
-                logging.info("Next run for %s is at %s", flow_path, next_run)
                 delay = (next_run - now).total_seconds()
-                logging.info("Sleeping for %d seconds before running %s", delay, flow_path)
-                time.sleep(delay)
-                job()
+                if stop_event.wait(timeout=delay):
+                    break
+                job_wrapper()
 
-        # Start a thread for the cron job
-        Thread(target=cron_job, daemon=True).start()
+        thread = Thread(target=cron_job, daemon=True)
+        thread.start()
+        self.flows[schedule_id]["cron_thread"] = thread
+        self.flows[schedule_id]["cron_stop_event"] = stop_event
+        logging.info("Scheduled flow %s with cron: %s", flow_path, cron_expression)
 
-    def run_flow(self, flow_path):
-        flow_name = os.path.basename(flow_path)
-        if is_locked(flow_name):
-            raise FlowAlreadyRunningException(f"Flow {flow_name} is already running.")
+    def run_scheduled_flow(self, flow_path, schedule_id, cron=None, every_seconds=None, timeout=None):
 
-        # get flow id
-        flow_id = None
-        for id, flow in self.flows.items():
-            if flow["path"] == flow_path:
-                flow_id = id
-                break
-
-        # Mark the flow as running
-        if flow_id:
-            self.flows[flow_id]["running"] = True
-
-
+        self.flows[schedule_id]["running"] = True
 
         try:
-            path = create_lock(flow_name)
-            # logging.debug("Created lock at %s", path)
-            Flow(path=flow_path).process()
+            meta ={
+                "flow_path": flow_path,
+                "timeout": timeout,
+                "schedule_id": schedule_id,
+                "cron": cron,
+                "every_seconds": every_seconds,
+                "source": "scheduler"
+            }
+
+            # Use FlowRunner for job tracking and async execution
+            try:
+                job_id = FlowRunner.launch_async(
+                    flow_path,
+                    timeout=timeout,
+                    meta=meta
+                )
+            except FlowAlreadyRunningException as e:
+                raise e
+            except Exception as e:
+                raise e
+            
+            
+            # Store the last job_id for this scheduled flow
+            self.flows[schedule_id]["last_job_id"] = job_id
+        except Exception as e:
+            logging.error("Error scheduling flow %s: %s", flow_path, e)
         finally:
-            release_lock(flow_name)
-            # Remove the flow from the running set
-            if flow_id and "running" in self.flows[flow_id]:
-                del self.flows[flow_id]["running"]
+            if schedule_id and "running" in self.flows[schedule_id]:
+                del self.flows[schedule_id]["running"]
 
     def start(self):
         def run_scheduler():
             while True:
-                schedule.run_pending()
+                try:
+                    schedule.run_pending()
+                except Exception as e:
+                    logging.error("Exception in scheduler loop: %s", e)
                 time.sleep(1)
-
         Thread(target=run_scheduler, daemon=True).start()

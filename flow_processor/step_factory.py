@@ -6,6 +6,8 @@ from .steps.flow_loop_step import FlowLoopStep
 from .steps.flow_step import FlowStep
 from .steps.jira_names_merge_step import JiraNamesMergeStep
 from .steps.debug_step import DebugStep
+from .steps.sleep_step import SleepStep
+from .steps.exit_step import ExitStep                       # exits the flow with a message
 
 # Factory function
 def create_step(step, flow):
@@ -28,5 +30,9 @@ def create_step(step, flow):
             return JiraNamesMergeStep(step, flow)
         case "debug":
             return DebugStep(step, flow)
+        case "sleep":
+            return SleepStep(step, flow)
+        case "exit":
+            return ExitStep(step, flow)
         case _:
             raise Exception(f"Unsupported step type: {step_type}")

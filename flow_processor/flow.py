@@ -4,48 +4,45 @@ import re
 from .step_factory import create_step
 from flow_processor.utils import make_timestamp
 from flow_processor.config import FLOWS_PATH, SECRETS_PATH
+from flow_processor.exceptions import FlowParsingException,FlowNotFoundException,FlowExitException
 import os
 
 class Flow:
     """
     Flow class for processing workflows defined in YAML files.
-    Attributes:
-        _name (str): The name of the flow.
-        _steps (list): A list of steps to be executed in the flow.
-        _data (dict): A dictionary to store flow data, including errors and input payload.
-        _secrets (dict): A dictionary containing secrets loaded from a YAML file.
-    Methods:
-        __init__(payload={}):
-            Initializes the Flow instance with an optional input payload.
-        __repr__():
-            Returns a string representation of the Flow instance.
-        load(path):
-            Loads a flow definition from a YAML file.
-            Args:
-                path (str): The relative path to the YAML file.
-            Returns:
-                Flow: The current Flow instance.
-        process():
-            Processes the flow by executing its steps in sequence.
-            Returns:
-                dict: The flow data, including any errors encountered during processing.
-        _patch(key, data):
-            Patches the flow data with the given key and data.
-            Args:
-                key (str): The key to update in the flow data.
-                data (dict): The data to merge with the existing data for the given key.
-        _load_secrets():
-            Loads secrets from a YAML file.
-            Returns:
-                dict: A dictionary containing the loaded secrets.
     """
+
+    @staticmethod
+    def validatePath(flow_path):
+        """
+        Validate the flow path to prevent directory traversal and ensure it is a YAML file.
+        """
+        try:
+            with open(os.path.join(FLOWS_PATH,flow_path), "r") as file:
+                flow_config = yaml.safe_load(file)
+        except FileNotFoundError:
+            raise FlowNotFoundException(f"Flow file {flow_path} not found.")
+        except yaml.YAMLError as e:
+            raise FlowParsingException(f"Failed to parse flow file {flow_path}: {e}")
+        except Exception as e:
+            raise e
+
     def __init__(self, path, payload={}, loop_index=None):
         flow = {}
 
-        with open(os.path.join(FLOWS_PATH, path), "r") as file:
-            flow = yaml.safe_load(file)
+        try:
+            with open(os.path.join(FLOWS_PATH, path), "r") as file:
+                flow = yaml.safe_load(file)
+        except FileNotFoundError:
+            raise FlowNotFoundException(f"Flow file not found: {path}")
+        except yaml.YAMLError as e:
+            raise FlowParsingException(f"Failed to parse flow file: {path}: {e}")
+        except Exception as e:
+            raise e
+
 
         self._name = flow.get("name")
+        self._path = path
         self._steps = flow.get("steps", [])
         self._finally_step = flow.get("finally_step", None)
         self._data = {}
@@ -57,7 +54,7 @@ class Flow:
         self._representation = f"[{self._name}]"
         if loop_index:
             self._representation += f"[{loop_index}]"
-        
+
 
     def __repr__(self):
         repr =  f"[{self._name}][{self._data.get('__loop_index__')}]"
@@ -66,12 +63,14 @@ class Flow:
    
     def process(self):
         """Process the flow."""
+
         try:
 
             # loop over the steps, create the step object, since the step can a subclass of step, we need to use the factory
             # create the step object, and call the process method
 
             for step in self._steps:
+
                 try:
                     # call the step factory to create the step object
                     create_step(step, self).process()
@@ -98,6 +97,8 @@ class Flow:
                         continue
                     else:
                         raise e
+        except FlowExitException as e:
+            return self._data, {"exit": True, "exit_message": str(e)}
         except Exception as e:
             # we silent the error here, the flow failed, the error will be logged
             logging.error(f"{self._representation} Error in flow: {str(e)}")
@@ -111,6 +112,9 @@ class Flow:
 
             except Exception as e:
                 logging.error(f"{self._representation} Error in finally step {self._finally_step}: {str(e)}")
+
+        finally:
+            logging.debug(f"{self._representation} Flow {self._name} finished.")
 
         return self._data
     

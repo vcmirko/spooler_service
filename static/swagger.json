@@ -7,7 +7,9 @@
     },
     "host": "localhost:5000",
     "basePath": "/api",
-    "schemes": ["https"],
+    "schemes": [
+        "https"
+    ],
     "securityDefinitions": {
         "BearerAuth": {
             "type": "apiKey",
@@ -23,12 +25,12 @@
     ],
     "tags": [
         {
-            "name": "locks",
-            "description": "Operations related to locks"
+            "name": "jobs",
+            "description": "Operations related to jobs (flow executions)"
         },
         {
-            "name": "flows",
-            "description": "Operations related to flows"
+            "name": "schedules",
+            "description": "Operations related to scheduled flows"
         },
         {
             "name": "logs",
@@ -36,10 +38,12 @@
         }
     ],
     "paths": {
-        "/locks": {
+        "/schedules": {
             "get": {
-                "tags": ["locks"],
-                "summary": "Get all active locks",
+                "tags": [
+                    "schedules"
+                ],
+                "summary": "List all schedules",
                 "security": [
                     {
                         "BearerAuth": []
@@ -47,76 +51,18 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "List of active locks"
-                    }
-                }
-            },
-            "delete": {
-                "tags": ["locks"],
-                "summary": "Release all locks",
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "All locks released"
-                    }
-                }
-            }
-        },
-        "/locks/{flow_name}": {
-            "delete": {
-                "tags": ["locks"],
-                "summary": "Release a specific lock",
-                "parameters": [
-                    {
-                        "name": "flow_name",
-                        "in": "path",
-                        "required": true,
-                        "type": "string",
-                        "description": "Name of the flow to release the lock for"
-                    }
-                ],
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Lock released"
-                    },
-                    "404": {
-                        "description": "Lock not found"
-                    }
-                }
-            }
-        },
-        "/flows": {
-            "get": {
-                "tags": ["flows"],
-                "summary": "List all added flows",
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "List of all added flows",
+                        "description": "List of all schedules",
                         "schema": {
                             "type": "object",
                             "properties": {
-                                "flows": {
+                                "schedules": {
                                     "type": "array",
                                     "items": {
                                         "type": "object",
                                         "properties": {
                                             "id": {
                                                 "type": "string",
-                                                "description": "Unique ID of the flow"
+                                                "description": "Unique ID of the schedule"
                                             },
                                             "path": {
                                                 "type": "string",
@@ -124,11 +70,11 @@
                                             },
                                             "cron": {
                                                 "type": "string",
-                                                "description": "Cron schedule for the flow (if applicable)"
+                                                "description": "Cron schedule (if applicable)"
                                             },
                                             "every_seconds": {
                                                 "type": "integer",
-                                                "description": "Interval in seconds for the flow (if applicable)"
+                                                "description": "Interval in seconds (if applicable)"
                                             }
                                         }
                                     }
@@ -140,12 +86,12 @@
                         "description": "Scheduler is not running"
                     }
                 }
-            }
-        },
-        "/flows/launch": {
+            },
             "post": {
-                "tags": ["flows"],
-                "summary": "Launch a flow",
+                "tags": [
+                    "schedules"
+                ],
+                "summary": "Add a new schedule",
                 "parameters": [
                     {
                         "name": "body",
@@ -158,50 +104,22 @@
                                     "type": "string",
                                     "description": "Path to the flow YAML file"
                                 },
-                                "data": {
-                                    "type": "object",
-                                    "description": "Custom object for data payload",
-                                    "additionalProperties": true
-                                }
-                            }
-                        }
-                    }
-                ],
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Flow executed successfully"
-                    },
-                    "409": {
-                        "description": "Flow is already running"
-                    },
-                    "400": {
-                        "description": "Invalid request"
-                    }
-                }
-            }
-        },
-        "/flows/add": {
-            "post": {
-                "tags": ["flows"],
-                "summary": "Add a new flow to the scheduler",
-                "parameters": [
-                    {
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "path": {
+                                "cron": {
                                     "type": "string",
-                                    "description": "Path to the flow YAML file"
+                                    "description": "Cron expression (optional)"
+                                },
+                                "every_seconds": {
+                                    "type": "integer",
+                                    "description": "Interval in seconds (optional)"
+                                },
+                                "timeout_seconds": {
+                                    "type": "integer",
+                                    "description": "Timeout in seconds (optional)"
                                 }
-                            }
+                            },
+                            "required": [
+                                "path"
+                            ]
                         }
                     }
                 ],
@@ -211,8 +129,8 @@
                     }
                 ],
                 "responses": {
-                    "200": {
-                        "description": "Flow added to scheduler successfully"
+                    "201": {
+                        "description": "Schedule added successfully"
                     },
                     "400": {
                         "description": "Invalid request"
@@ -220,23 +138,28 @@
                     "404": {
                         "description": "Flow file not found"
                     },
+                    "409": {
+                        "description": "Schedule already exists"
+                    },
                     "500": {
                         "description": "Scheduler is not running"
                     }
                 }
             }
         },
-        "/flows/{flow_id}": {
+        "/schedules/{schedule_id}": {
             "delete": {
-                "tags": ["flows"],
-                "summary": "Remove a flow from the scheduler by ID",
+                "tags": [
+                    "schedules"
+                ],
+                "summary": "Remove a schedule by ID",
                 "parameters": [
                     {
-                        "name": "flow_id",
+                        "name": "schedule_id",
                         "in": "path",
                         "required": true,
                         "type": "string",
-                        "description": "Unique ID of the flow to remove"
+                        "description": "Unique ID of the schedule to remove"
                     }
                 ],
                 "security": [
@@ -246,10 +169,10 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Flow removed successfully"
+                        "description": "Schedule removed successfully"
                     },
                     "404": {
-                        "description": "Flow not found"
+                        "description": "Schedule not found"
                     },
                     "500": {
                         "description": "Scheduler is not running"
@@ -259,7 +182,9 @@
         },
         "/logs": {
             "get": {
-                "tags": ["logs"],
+                "tags": [
+                    "logs"
+                ],
                 "summary": "Tail the log file",
                 "description": "Returns the last N lines of the log file. Default is 100.",
                 "parameters": [
@@ -285,13 +210,296 @@
                             "properties": {
                                 "lines": {
                                     "type": "array",
-                                    "items": { "type": "string" }
+                                    "items": {
+                                        "type": "string"
+                                    }
                                 }
                             }
                         }
                     },
                     "404": {
                         "description": "Log file not found"
+                    }
+                }
+            }
+        },
+        "/jobs": {
+            "get": {
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "List all jobs (metadata only)",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "type": "integer",
+                        "required": false,
+                        "description": "Maximum number of jobs to return (default: 50)"
+                    },
+                    {
+                        "name": "offset",
+                        "in": "query",
+                        "type": "integer",
+                        "required": false,
+                        "description": "Number of jobs to skip (default: 0)"
+                    },
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "type": "string",
+                        "required": false,
+                        "description": "Filter by job state"
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "type": "string",
+                        "required": false,
+                        "description": "Filter by job status"
+                    },
+                    {
+                        "name": "start_time_from",
+                        "in": "query",
+                        "type": "string",
+                        "required": false,
+                        "description": "Filter jobs with start_time >= this value (accepts ISO 8601 or human-friendly datetime, e.g. '2024-05-23T14:00:00+02:00' or '2024-05-23 14:00:00+02:00')"
+                    },
+                    {
+                        "name": "start_time_to",
+                        "in": "query",
+                        "type": "string",
+                        "required": false,
+                        "description": "Filter jobs with start_time <= this value (accepts ISO 8601 or human-friendly datetime, e.g. '2024-05-23T14:00:00+02:00' or '2024-05-23 14:00:00+02:00')"
+                    },
+                    {
+                        "name": "end_time_from",
+                        "in": "query",
+                        "type": "string",
+                        "required": false,
+                        "description": "Filter jobs with end_time >= this value (accepts ISO 8601 or human-friendly datetime, e.g. '2024-05-23T14:00:00+02:00' or '2024-05-23 14:00:00+02:00')"
+                    },
+                    {
+                        "name": "end_time_to",
+                        "in": "query",
+                        "type": "string",
+                        "required": false,
+                        "description": "Filter jobs with end_time <= this value (accepts ISO 8601 or human-friendly datetime, e.g. '2024-05-23T14:00:00+02:00' or '2024-05-23 14:00:00+02:00')"
+                    }
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of all jobs (metadata only)",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "jobs": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "properties": {
+                                            "id": {
+                                                "type": "string",
+                                                "description": "Job ID"
+                                            },
+                                            "meta": {
+                                                "type": "object",
+                                                "description": "Job metadata"
+                                            },
+                                            "state": {
+                                                "type": "string",
+                                                "description": "Job state (pending, running, finished)"
+                                            },
+                                            "status": {
+                                                "type": "string",
+                                                "description": "Job status (success, failed, etc.)"
+                                            },
+                                            "start_time": {
+                                                "type": "number",
+                                                "format": "float",
+                                                "description": "Start time (timestamp)"
+                                            },
+                                            "end_time": {
+                                                "type": "number",
+                                                "format": "float",
+                                                "description": "End time (timestamp)"
+                                            }
+                                        }
+                                    }
+                                },
+                                "limit": {
+                                    "type": "integer",
+                                    "description": "Limit used for pagination"
+                                },
+                                "offset": {
+                                    "type": "integer",
+                                    "description": "Offset used for pagination"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Launch a job (ad hoc flow execution)",
+                "parameters": [
+                    {
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "path": {
+                                    "type": "string",
+                                    "description": "Path to the flow YAML file"
+                                },
+                                "data": {
+                                    "type": "object",
+                                    "description": "Custom object for data payload",
+                                    "additionalProperties": true
+                                },
+                                "timeout_seconds": {
+                                    "type": "integer",
+                                    "description": "Timeout in seconds for this job execution (optional)"
+                                }
+                            },
+                            "required": [
+                                "path"
+                            ]
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Job accepted and started",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "job_id": {
+                                    "type": "string",
+                                    "description": "ID of the launched job"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Delete jobs older than a specified number of days",
+                "parameters": [
+                    {
+                        "name": "older_than_days",
+                        "in": "query",
+                        "type": "integer",
+                        "required": true,
+                        "description": "Delete jobs whose end_time is older than this many days"
+                    }
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Number of jobs deleted",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "deleted": {
+                                    "type": "integer",
+                                    "description": "Number of jobs deleted"
+                                },
+                                "older_than_days": {
+                                    "type": "integer",
+                                    "description": "Days threshold used"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Missing or invalid 'older_than_days' parameter"
+                    }
+                }
+            }
+        },
+        "/jobs/{job_id}": {
+            "get": {
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Get full details for a specific job",
+                "parameters": [
+                    {
+                        "name": "job_id",
+                        "in": "path",
+                        "required": true,
+                        "type": "string",
+                        "description": "Job ID"
+                    }
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Full job details",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "id": {
+                                    "type": "string"
+                                },
+                                "meta": {
+                                    "type": "object"
+                                },
+                                "state": {
+                                    "type": "string"
+                                },
+                                "status": {
+                                    "type": "string"
+                                },
+                                "start_time": {
+                                    "type": "number",
+                                    "format": "float"
+                                },
+                                "end_time": {
+                                    "type": "number",
+                                    "format": "float"
+                                },
+                                "result": {
+                                    "type": "object"
+                                },
+                                "errors": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Job not found"
                     }
                 }
             }

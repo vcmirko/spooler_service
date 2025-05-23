@@ -1,2 +1,0 @@
-status: {% if status == 'successful' %}finished{% elif status=='failed'%}finished{% else %}running{% endif %}
-result: {% if status == 'successful' %}{{ playbook }}{% elif status=='failed' %}Failed !!{% endif %}

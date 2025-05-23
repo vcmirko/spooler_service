@@ -1,18 +1,24 @@
-from flask import Flask, request, jsonify
-from flask_swagger_ui import get_swaggerui_blueprint
-from flow_processor.config import API_PORT, API_TOKEN, LOCK_PATH, LOG_PATH, LOG_FORMAT, LOG_LEVEL, LOG_FILE_NAME, CONFIG_FILE, SWAGGER_URL, SWAGGER_JSON_PATH, FLOWS_PATH
-from flow_processor.locks import is_locked, create_lock, release_lock, release_all_locks, get_all_locks
-from flow_processor.flow import Flow
-from flow_processor.logs import get_logs
-from flow_processor.flow_scheduler import FlowScheduler
-from flow_processor.exceptions import FlowAlreadyAddedException, FlowNotFoundException, FlowAlreadyRunningException
-from flask_cors import CORS
-from threading import Thread, Event
 import os
 import json
 import logging
-import yaml
-import time
+from flask import Flask, request, jsonify
+from flask_swagger_ui import get_swaggerui_blueprint
+from flask_cors import CORS
+
+from flow_processor.config import (
+    API_PORT, API_TOKEN, LOG_PATH, LOG_FORMAT, LOG_LEVEL,
+    LOG_FILE_NAME, SWAGGER_URL, SWAGGER_JSON_PATH
+)
+
+from flow_processor.flow import Flow
+from flow_processor.logs import get_logs
+from flow_processor.exceptions import (
+    FlowAlreadyAddedException, FlowNotFoundException, FlowParsingException
+)
+from flow_processor.scheduler_service import SchedulerService
+from flow_processor.flow_runner import FlowRunner
+from flow_processor.job_store import get_job, list_jobs, delete_jobs_older_than
+from flow_processor.utils import to_iso, parse_time_param
 
 # Flask app setup
 app = Flask(__name__)
@@ -29,50 +35,8 @@ logging.getLogger().addHandler(file_handler)
 logging.getLogger().setLevel(LOG_LEVEL)
 app.logger.propagate = True
 
-# Global scheduler instance and event and thread
-scheduler_instance = None
-scheduler_ready = Event()
-scheduler_thread = None
-
-def start_scheduler():
-    global scheduler_instance
-    logging.info("Starting scheduler service")
-    release_all_locks()
-    scheduler_instance = FlowScheduler()
-    with open(CONFIG_FILE, "r") as file:
-        autostart_flows = yaml.safe_load(file).get("autostart", [])
-    try:
-        for flow in autostart_flows:
-            try:
-                scheduler_instance.add_flow(flow)
-            except Exception as e:
-                logging.error("Failed to add flow: %s", e)
-    
-    except Exception as e:
-        logging.error("Failed to start scheduler: %s", e)
-    scheduler_instance.start()
-    scheduler_ready.set()
-    while True:
-        time.sleep(1)
-
-
-
-def initialize_scheduler():
-    global scheduler_instance, scheduler_thread
-    logging.info("Initializing scheduler service")
-    # Start if thread is not alive or not set
-    if (
-        scheduler_thread is None
-        or not scheduler_thread.is_alive()
-        or scheduler_instance is None
-        or not scheduler_ready.is_set()
-    ):
-        scheduler_thread = Thread(target=start_scheduler, daemon=True)
-        scheduler_thread.start()
-        scheduler_ready.wait()
-        logging.info("Scheduler initialized and ready.")
-    else:
-        logging.info("Scheduler is already running.")
+# get the scheduler instance (singleton)
+scheduler_instance = SchedulerService.get_instance()
 
 # --- Only for testing: add StreamHandler for console output ---
 def run_app():
@@ -81,11 +45,8 @@ def run_app():
     stream_handler.setLevel(LOG_LEVEL)
     logging.getLogger().addHandler(stream_handler)
     logging.info("Starting Flask app with embedded scheduler (test mode)")
-    
+    # launch the Flask app for testing
     app.run(port=API_PORT, use_reloader=False)
-
-# --- Always initialize scheduler, even when running under Gunicorn ---
-initialize_scheduler()
 
 @app.route("/static/swagger.json", methods=["GET"])
 def get_swagger_json():
@@ -120,120 +81,161 @@ def validate_token():
     if token != f"Bearer {API_TOKEN}":
         return jsonify({"error": "Unauthorized"}), 401
 
-# Grouped under /api/locks
-@app.route("/api/locks", methods=["GET"])
-def get_locks():
-    """Get a list of all active locks."""
-    locks = get_all_locks()
-    return jsonify({"locks": locks})
 
-@app.route("/api/locks", methods=["DELETE"])
-def release_all_locks_api():
-    """Release all locks."""
-    try:
-        release_all_locks()
-        return jsonify({"status": "All locks released."}), 200
-    except Exception as e:
-        logging.error("Error releasing all locks: %s", e)
-        return jsonify({"error": str(e)}), 500
+# Grouped under /api/schedules
 
-@app.route("/api/locks/<flow_name>", methods=["DELETE"])
-def release_lock_api(flow_name):
-    """Release a specific lock."""
-    lock_path = os.path.join(LOCK_PATH, f"{flow_name}.lock")
-    try:
-        release_lock(flow_name)
-        return jsonify({"status": f"Lock for {flow_name} released."}), 200
-    except FileNotFoundError:
-        logging.error("Error releasing lock: %s", e)
-        return jsonify({"error": f"No lock found for {flow_name}."}), 404
-    except Exception as e:
-        logging.error("Error releasing lock: %s", e)
-        return jsonify({"error": str(e)}), 500
-
-# Grouped under /api/flows
-
-@app.route("/api/flows", methods=["GET"])
-def list_flows():
+@app.route("/api/schedules", methods=["GET"])
+def list_schedules():
     """List all added flows."""
-    if not scheduler_instance:
-        return jsonify({"error": "Scheduler is not running"}), 500
 
-    flows = scheduler_instance.list_flows()
+    schedules = scheduler_instance.list_flows()
     # Convert flows to an array of objects with 'id' as a property
-    formatted_flows = [{"id": flow_id, **flow_data} for flow_id, flow_data in flows.items()]
-    return jsonify({"flows": formatted_flows}), 200
+    return jsonify({"schedules": schedules}), 200
 
 
-@app.route("/api/flows/<flow_id>", methods=["DELETE"])
-def remove_flow(flow_id):
-    """Remove a flow from the scheduler by ID."""
-    if not scheduler_instance:
-        return jsonify({"error": "Scheduler is not running"}), 500
+@app.route("/api/schedules/<schedule_id>", methods=["DELETE"])
+def remove_schedule(schedule_id):
+    """Remove a scheduled flow by ID."""
     try:
-        message = scheduler_instance.remove_flow(flow_id)
+        message = scheduler_instance.remove_flow(schedule_id)
         return jsonify({"status": message}), 200
     except FlowNotFoundException as e:
         return jsonify({"error": str(e)}), 404
     except Exception as e:
-        logging.error("Error removing flow: %s", e)
+        logging.error("Error removing schedule: %s", e)
         return jsonify({"error": str(e)}), 500
     
-@app.route("/api/flows/launch", methods=["POST"])
-def launch_flow():
-    """Launch a flow, ensuring no duplicate runs."""
-    data = request.json
-    flow_path = data.get("path")
-    payload = data.get("data")
-    if not flow_path:
-        return jsonify({"error": "flow_path is required"}), 400
-
-    flow_name = os.path.basename(flow_path)
-    if is_locked(flow_name):
-        return jsonify({"error": f"Flow {flow_name} is already running."}), 409
-
+# Add a new schedule
+@app.route("/api/schedules", methods=["POST"])
+def add_schedule():
+    """Add a new scheduled flow."""
+    schedule = request.json
     try:
-        create_lock(flow_name)
-        message = Flow(path=flow_path, payload=payload).process()
-        return jsonify({"status": message}), 200
-    except FlowAlreadyRunningException as e:
-        return jsonify({"error": str(e)}), 409
-    except FlowNotFoundException as e:
-        return jsonify({"error": str(e)}), 404
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    finally:
-        release_lock(flow_name)
-
-@app.route("/api/flows/add", methods=["POST"])
-def add_flow_to_scheduler():
-    """Add a new flow to the scheduler."""
-    if not scheduler_instance:
-        return jsonify({"error": "Scheduler is not running"}), 500
-
-    data = request.json
-    flow_path = data.get("path")
-    if not flow_path:
-        return jsonify({"error": "flow_path is required"}), 400
-
-    # Resolve the flow path
-    resolved_path = os.path.join(FLOWS_PATH, flow_path)
-    if not os.path.exists(resolved_path):
-        return jsonify({"error": f"Flow file '{flow_path}' does not exist"}), 404
-
-    try:
-        flow_id = scheduler_instance.add_flow(resolved_path)
-        if flow_id:
-            return jsonify({"status": f"Flow '{flow_path}' added successfully", "flow_id": flow_id}), 201
+        schedule_id = scheduler_instance.add_flow(schedule)
+        schedule_path = schedule.get("path")
+        if schedule_id:
+            return jsonify({"status": f"Schedule for '{schedule_path}' added successfully", "schedule_id": schedule_id}), 201
         else:
-            return jsonify({"error": "Failed to add flow"}), 500
+            return jsonify({"error": "Failed to add schedule"}), 500
     except FlowNotFoundException as e:
         return jsonify({"error": str(e)}), 404
     except FlowAlreadyAddedException as e:
         return jsonify({"error": str(e)}), 409
+    except FlowParsingException as e:
+        return jsonify({"error": str(e)}), 400  
     except Exception as e:
-        logging.error("Error adding flow: %s", e)
+        logging.error("Error adding schedule: %s", e)
         return jsonify({"error": str(e)}), 500
+
+@app.route("/api/jobs", methods=["POST"])
+def launch_job():
+    """Launch a flow as a job asynchronously and return a job_id."""
+    data = request.json
+    flow_path = data.get("path")
+    payload = data.get("data")
+    timeout = data.get("timeout_seconds")
+    meta ={
+    "flow_path": flow_path,
+    "payload": payload,
+    "timeout": timeout,
+    "source": "api"
+    }
+    if not flow_path:
+        return jsonify({"error": "flow path is required"}), 400
+
+   
+
+    try:
+        Flow.validatePath(flow_path)
+        job_id = FlowRunner.launch_async(flow_path, payload=payload, timeout=timeout, meta=meta)
+    except FlowNotFoundException as e:
+        return jsonify({"error": str(e)}), 404
+    except FlowParsingException as e:
+        return jsonify({"error": str(e)}), 400
+    except FlowAlreadyAddedException as e:
+        return jsonify({"error": str(e)}), 409
+    except Exception as e:
+        logging.error("Error launching job: %s", e)
+        return jsonify({"error": str(e)}), 500
+    
+    return jsonify({"job_id": job_id}), 202
+
+
+@app.route("/api/jobs", methods=["GET"])
+def list_jobs_api():
+    """List all jobs (metadata only) with pagination and filtering."""
+    try:
+        limit = int(request.args.get("limit", 50))
+        offset = int(request.args.get("offset", 0))
+        state = request.args.get("state")
+        status = request.args.get("status")
+        start_time_from = parse_time_param(request.args.get("start_time_from"))
+        start_time_to = parse_time_param(request.args.get("start_time_to"))
+        end_time_from = parse_time_param(request.args.get("end_time_from"))
+        end_time_to = parse_time_param(request.args.get("end_time_to"))
+        # Convert time filters to float if provided
+        start_time_from = float(start_time_from) if start_time_from else None
+        start_time_to = float(start_time_to) if start_time_to else None
+        end_time_from = float(end_time_from) if end_time_from else None
+        end_time_to = float(end_time_to) if end_time_to else None
+    except ValueError:
+        return jsonify({"error": "Invalid parameter"}), 400
+
+    jobs = list_jobs(
+        limit=limit,
+        offset=offset,
+        state=state,
+        status=status,
+        start_time_from=start_time_from,
+        start_time_to=start_time_to,
+        end_time_from=end_time_from,
+        end_time_to=end_time_to,
+    )
+    jobs_meta = [
+        {
+            "id": job.id,
+            "meta": job.meta,
+            "state": job.state.value if job.state else None,
+            "status": job.status.value if job.status else None,
+            "start_time": to_iso(job.start_time),
+            "end_time": to_iso(job.end_time) if job.end_time else None,
+        }
+        for job in jobs
+    ]
+    return jsonify({"jobs": jobs_meta, "limit": limit, "offset": offset}), 200
+
+@app.route("/api/jobs/<job_id>", methods=["GET"])
+def get_job_api(job_id):
+    """Get full details for a specific job."""
+    job = get_job(job_id)
+    if not job:
+        return jsonify({"error": "Job not found"}), 404
+    return jsonify({
+        "id": job.id,
+        "meta": job.meta,
+        "state": job.state.value if job.state else None,
+        "status": job.status.value if job.status else None,
+        "start_time": to_iso(job.start_time),
+        "end_time": to_iso(job.end_time) if job.end_time else None,
+        "result": job.result,
+        "errors": job.errors,
+    }), 200
+
+@app.route("/api/jobs", methods=["DELETE"])
+def delete_old_jobs():
+    """
+    Delete jobs whose end_time is older than the given number of days.
+    Query param: older_than_days (int, required)
+    """
+    try:
+        days = int(request.args.get("older_than_days"))
+        if days < 1:
+            return jsonify({"error": "'older_than_days' must be a positive integer"}), 400
+    except (TypeError, ValueError):
+        return jsonify({"error": "Missing or invalid 'older_than_days' parameter"}), 400
+
+    deleted_count = delete_jobs_older_than(days)
+    return jsonify({"deleted": deleted_count, "older_than_days": days}), 200
 
 @app.route("/api/logs", methods=["GET"])
 def fetch_logs():

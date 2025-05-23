@@ -1,3 +1,17 @@
-autostart: []
-# - flow_service_now_jobs.yml
-# - flow_service_now_tickets.yml
+# Configuration file for the Spooler Service
+# 
+# This file defines settings for autostarting flows and other service options.
+# 
+# autostart_flows:
+#   - path: Path to the flow YAML file.
+#     cron: (optional) Cron expression for scheduling.
+#     every_seconds: (optional) Interval in seconds for scheduling.
+#     timeout_seconds: (optional) Timeout in seconds for the flow.
+
+autostart_flows: []
+  # - path: my_flow.yml
+  #   cron: "*/5 * * * *"
+  #   timeout_seconds: 120
+  # - path: another_flow.yml
+  #   every_seconds: 30
+  #   timeout_seconds: 60

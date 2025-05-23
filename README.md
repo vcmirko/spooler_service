@@ -1,8 +1,15 @@
-# The spooler service
+# Spooler Service (Octoflow?)
 
-The main principle of the application is to create flows.  A flow is a set of steps that will be executed in order.  
+A flexible job and flow orchestration service for running, scheduling, and tracking flows (workflows) with robust API and database-backed job management.
+> **Note:**  
+> This service is designed to run as a **single instance only**. For simplicity and ease of deployment, the jobs database uses SQLite via Python and is managed within the app itself. Running multiple instances would risk duplicate job execution, as SQLite does not support distributed locking.  
+> 
+> If your workload grows to require multiple instances or high concurrency, the SQLAlchemy data layer can be configured to use an external database (e.g., PostgreSQL, MySQL) to support distributed locking and scaling.  
+> 
+> **If you anticipate needing this, please contact us to discuss your requirements.**
+---
 
-TODO : a proper name, octoflow ?, grabbing and passing data with it's tentacles.
+## Directory Structure
 
 ```
 ├── data/
@@ -10,118 +17,201 @@ TODO : a proper name, octoflow ?, grabbing and passing data with it's tentacles.
 │   ├── secrets.yml
 │   ├── flows/
 │   │   ├── flow1.yml 
-|   │   ├── flow2.yml
-│   ├── locks/
-│   │   ├── flow1.lock
-│   │   ├── flow2.lock
+│   │   ├── flow2.yml
 │   ├── logs/
 │   │   ├── spooler_service.log
-|   ├── templates/
+│   ├── templates/
 │   │   ├── template1.j2
 │   │   ├── template2.j2
+│   ├── jobs.sqlite
 │   ├── ... other data files (input, output, etc.)
 ```
 
-# environment variables
+---
 
-The application uses several environment variables to configure the application.  These are the main ones:
+## Environment Variables
 
-Note that they are all optional.  
-The **DATA_PATH** is the root path for all custom files, including the config, secrets, flows, locks, logs, templates and other data files.  The default is `data/`.  The application will create the directories if they do not exist.  But feel free to override them.  The application will use the environment variables to create the paths.
+All are optional and have sensible defaults.
+
+| Variable         | Description                                 | Default                |
 | Variable         | Description                                 | Default                |
 |------------------|---------------------------------------------|------------------------|
-| **DATA_PATH**    | Path to the data directory                  | `data/`                |
-| **LOCK_PATH**    | Path to the directory for lock files        | `data/locks/`          |
-| **LOG_PATH**     | Path to the directory for log files         | `data/logs/`           |
-| **LOG_FILE_NAME** | Name of the log file                      | `spooler_service.log`  |
+| **LOG_PATH**     | Full path to the directory for log files         | `<DATA_PATH>/logs/`           |
+| **LOG_FILE_NAME**| Name of the log file                        | `spooler_service.log`  |
 | **LOG_LEVEL**    | Log level for the application               | `INFO`                 |
-| **FLOWS_PATH**   | Path to the directory for flow files        | `data/flows/`          |
-| **TEMPLATES_PATH** | Path to the directory for template files  | `data/templates/`      |
-| **SECRETS_PATH** | Path to the secrets file                    | `data/secrets.yml`     |
-| **CONFIG_FILE**  | Path to the configuration file              | `data/config.yml`      |
+| **FLOWS_PATH**   | Full path to the directory for flow files        | `<DATA_PATH>/flows/`          |
+| **TEMPLATES_PATH**| Full path to the directory for template files   | `<DATA_PATH>/templates/`      |
+| **SECRETS_PATH** | Full path to the secrets file                    | `<DATA_PATH>/secrets.yml`     |
+| **CONFIG_FILE**  | Full path to the configuration file              | `<DATA_PATH>/config.yml`      |
 | **API_PORT**     | Port for the API server                     | `5000`                 |
 | **API_TOKEN**    | Token for API authentication                | `default_token`        |
-| **HASHICORP_VAULT_TOKEN** | Token for HashiCorp Vault authentication |         |
+| **HASHICORP_VAULT_TOKEN** | Token for HashiCorp Vault          |                        |
+| **FLOW_TIMEOUT_SECONDS** | Default timeout for flows (seconds) | `600`                  |
+| **TIMEZONE**     | Timezone for API input/output (e.g. `UTC`, `Europe/Berlin`) | `UTC` |
+| **JOBS_DB_PATH** | Full path to the jobs database file (SQLite)     | `<DATA_PATH>/jobs.sqlite`     |
 
-# security
 
-we will be using several types of secrets, username/password, tokens... 
-these could be hardcoded in the secrets file, or could be grabbed from hashicorp vault.
-We use a base `Secret` class, with a `scecret_factory.py` to create types of secrets.  The secrets are stored in the `secrets.yml` file.  The `hashicorp-vault` secret has 1 minute TTL, so it doesn't hit the vault too often, and requires the `HASHICORP_VAULT_TOKEN` environment variable to be set. 
+**TIMEZONE** is used for all API output (ISO 8601) and for interpreting incoming date/time filters if no timezone is provided.
 
-`secrets.yml`
+---
 
+## Security & Secrets
+
+Secrets can be stored in `secrets.yml` or fetched from HashiCorp Vault (with 1-minute TTL).  
+Set `HASHICORP_VAULT_TOKEN` for Vault access.
+
+Example `secrets.yml`:
 ```yaml
 - name: secretX
   type: credential
   username: xxx
   password: xxx
-- name: secretY
-  type: token
-  token: yyy
 - name: servicenow
   type: hashicorp-vault
   uri: https://vault.example.com/v1/test/data/servicenow
 ```
 
-Future ideas:
-- Use a secrets manager (AWS Secrets Manager, Azure Key Vault, etc.) to store the secrets
-- Use a database to store the secrets
-- CyberArk
+---
 
-**API_TOKEN**   
+## Job Locking & Concurrency
 
-The service has a rest api wrapped around the service.   the **API_TOKEN** environment variable will be used to authenticate the requests.  it's a bearer token (Bearer <token>).
+- **No two jobs for the same flow can run at the same time.**
+- The jobs table in the database is the single source of truth for running jobs.
+- If you try to launch a job for a flow that is already running, the API returns `409 Conflict`.
 
-TODO : transform the app into a full blown enterprise application with a database for users, roles, ldap, MFA, request tokens, etc.  Redis to store the tokens, etc.  This is a long term goal, for now we will use a simple token.
+---
 
-# entry script
+## API Overview
 
-The `main.py` was originally the main entry, but after adding the api, the logic has been moved to the api.py file, because the api.py file will become the main entry point.  The `main.py` is a wrapper around `lib.prow_processor.api.py` for testing.  
+All endpoints require `Authorization: Bearer <API_TOKEN>`.
 
-For now the api uses app.run, but in the future it will be moved to a wsgi server (gunicorn, uWSGI, etc.) for production use.  This will require the logging to be moved to the app level.  For now I have been testing on my laptop (windows) so gunicorn is not an option.  Looking for some python magicians to help me with this.
+### Launch a Job (Ad Hoc Flow Execution)
 
-# flow_processor
-  
-The flow_processor is the main module of the application.  It will be used to create the flows and steps.  It will also be used to run the flows and steps.  The flow_processor will be used by the `api.py` file to run the flows.
+```bash
+curl -X POST http://localhost:5000/api/jobs \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"path": "flow1.yml", "data": {"foo": "bar"}, "timeout_seconds": 120}'
+```
+**Response:**  
+- `{"job_id": "..."}` if started  
+- `{"error": "A job for this flow is already running."}` if locked
 
-# the flow class
+### List Jobs (with Filtering & Pagination)
 
-The flow class is quite simple.  It has a name, an optional schedule property (**cron** or **every_seconds**) and a list of steps.  
+```bash
+curl -X GET "http://localhost:5000/api/jobs?state=finished&limit=10&offset=0&start_time_from=2024-05-23T00:00:00+02:00"
+```
+- Supports filters: `state`, `status`, `start_time_from`, `start_time_to`, `end_time_from`, `end_time_to`
+- Time filters accept ISO 8601 or human-friendly datetimes (timezone optional; defaults to `TIMEZONE`)
 
-The flow instance has a few properties:
+### Get Job Details
 
-- **_data**: a dict that will hold the data during the flow
-- **_steps**: a list of steps that will be executed in order
+```bash
+curl -X GET http://localhost:5000/api/jobs/<job_id>
+```
 
-# the step class
+### Delete Jobs Older Than X Days
 
-The step class is the main class for the steps.  It has some generic properties that will be used by all steps. (**name**, **type**, **when**, ...).
-Each step handles data in some form (load, read, transform, write, send).  
-We use the `factory.py` to create the steps.  Currently these are the steps that are implemented:
+```bash
+curl -X DELETE "http://localhost:5000/api/jobs?older_than_days=30"
+```
+- Deletes jobs whose `end_time` is older than X days.
+
+### Schedule a Flow
+
+Schedule can be either `cron` or `every_seconds`.
+You can also specify a `timeout_seconds` for the schedule.
+
+```bash
+curl -X POST http://localhost:5000/api/schedules \
+  -H "Authorization: Bearer $API_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"path": "flow1.yml", "cron": "0 * * * *"}'
+```
+
+### List Schedules
+
+```bash
+curl -X GET http://localhost:5000/api/schedules
+```
+
+### Remove a Schedule
+
+```bash
+curl -X DELETE http://localhost:5000/api/schedules/<schedule_id>
+```
+
+---
+
+## Time Handling
+
+- **All times in API responses are ISO 8601 in the configured `TIMEZONE`.**
+- **All time filters accept ISO 8601 or human-friendly datetimes.**  
+  If no timezone is provided, the configured `TIMEZONE` is assumed.
+
+---
+
+## Flow & Step Model
+
+A **flow** is a YAML file with a `name` and a list of steps. Scheduling information (such as `cron` or `every_seconds`) as well as `timeout_seconds` is **not** part of the flow file itself; it is provided separately when launching a job or creating a schedule.
+
+Flows can also define a `finally_step`, which is a step that always runs at the end of the flow, even if the flow fails.
+
+Example:
+```yaml
+name: Process snow tickets                # Name of the flow
+finally_step: "write output file"         # Step that always runs at the end, even if flow fails
+steps:
+  - name: get tickets
+    type: rest                            # REST API call step
+    result_key: tickets                   # Store result in 'tickets'
+    rest:
+      uri: https://dev.service-now.com/api/now/table/x_xxxx   # ServiceNow API endpoint
+      authentication:
+        type: basic
+        secret: snow_credential           # Reference to secret in secrets.yml 
+    jq_expression: ".result"              # Extract 'result' field from API response
+  - name: loop tickets
+    type: flow_loop                       # Loop over items and call another flow (multithreading)
+    result_key: flow_loop                 # Store result of all subflows in 'flow_loop'
+    flow_loop:
+      path: ticket_to_awx.yml             # Sub-flow to run for each ticket
+      data_key: tickets                   # Input data for the loop (from previous step)
+    when: ["tickets | length > 0"]        # Only run if there are tickets
+  - name: read input file
+    type: file
+    file:
+      path: input/data.json
+      mode: read
+      type: json
+    result_key: file_content
+
+  - name: write output file
+    type: file
+    file:
+      path: "output/result_{{ __timestamp__ }}.yml" # a job timestamp is available as `__timestamp__`
+      mode: write
+      type: yaml
+      data_key: "."   # dot, means the entire flow result
+```
+
+## Step Types
 
 | Step Name             | Description                                                                                  |
 |-----------------------|----------------------------------------------------------------------------------------------|
-| **FileStep**          | Reads from or writes to a file                                                               |
-| **RestStep**          | Calls a REST API (GET, POST, PUT, DELETE, PATCH)                                             |
-| **JqStep**            | Uses jq to transform the data                                                                |
-| **JinjaStep**         | Uses jinja2 to transform the data                                                            |
+| **FileStep**          | Reads/writes files (JSON/YAML)                                                               |
+| **RestStep**          | Calls REST APIs                                                                              |
+| **JqStep**            | Transforms data with jq                                                                      |
+| **JinjaStep**         | Transforms data with jinja2 templates                                                        |
 | **FlowStep**          | Calls another flow                                                                           |
 | **FlowLoopStep**      | Calls another flow in a loop                                                                 |
-| **JiraNamesMergeStep**| Reformats fields from Jira results, merging the names/labels                                 |
-| **DebugStep**         | Debug step, logs data                                                  |
+| **JiraNamesMergeStep**| Reformats fields from Jira results                                                           |
+| **DebugStep**         | Logs data for debugging                                                                      |
+| **SleepStep**         | Pauses execution for a specified number of seconds                                           |
+| **ExitStep**          | Prematurely exits the flow with a custom message and sets job status to `exit`               |
 
-Some ideas for future steps:
-- **SwitchStep**: a step that will switch the data (if/else) or (match/case)
-- **DatabaseStep**: a step that will read from or write to a database
-- **KafkaStep**: a step that will read from or write to a kafka topic
-- **S3Step**: a step that will read from or write to an S3 bucket
-- **RedisStep**: a step that will read from or write to a redis database
-- **EmailStep**: a step that will send an email
-
-Each step has a **result_key** property that will be used to store the result of the step in the **_data** property.  
-Each step also has a custom property (**file**, **rest**, **jq**, ...) which hold the typical properties for that step.  For example, the **FileStep** has a **path** property, the **RestStep** has a **uri** property, etc.  Some of these steps will have a **data_key** property which will be the input payload for that step.  
-All steps can have **jq_expression** (json query) property that can do quick final transformation on the data.
+---
 
 Common properties for all steps:
 
@@ -132,21 +222,43 @@ Common properties for all steps:
 | **when**         | A condition (if/else) that determines whether the step should be executed                                      |
 | **result_key**   | The key used to store the result of the step in the **_data** property                                         |
 | **ignore_errors**| A list of regex patterns to match error strings that should be ignored, allowing the flow to continue on error |
-| **jq_expression**| A jq expression to transform the data after the step is executed                                               |
-## The file step
+| **jq_expression**| A jq expression to transform the data after the step is executed
 
-The file step is a step that will read from or write to a file.
+### Sleep Step
 
-| Property   | Description                                                                                  | Notes                                   | Default |
-|------------|----------------------------------------------------------------------------------------------|-----------------------------------------|---------|
-| **path**   | The path to the file                                                                         | Allows jinja2 templating; relative to DATA_PATH |         |
-| **mode**   | The mode of the file                                                                         |                                         | read    |
-| **type**   | The type of the file                                                                         | (json, yaml)                            |         |
-| **data_key** | The key used to grab the data from the **_data** property to write to the file             |                                         |         |
+Pauses the flow for a specified number of seconds.
 
-## The rest step
+```yaml
+- name: sleep before processing
+  type: sleep
+  sleep:
+    seconds: 5
+```
 
-The rest step is a step that will call a REST API (GET, POST, PUT, DELETE, PATCH).
+---
+
+### Exit Step
+
+Allows a flow to exit early on purpose (e.g., if there is no data to process).  
+When triggered, the flow stops immediately, the job status is set to `exit`, and the provided message is stored in the job result (under the specified `result_key`).
+
+```yaml
+- name: exit early
+  type: exit
+  result_key: exit_info
+  exit:
+    message: "No data to process, exiting early."
+  when:
+    - "tickets | length == 0"
+```
+
+This makes it easy to distinguish jobs that were exited intentionally (not errors or failures) in your job history and API.
+
+---
+
+### Rest Step
+
+The `rest` step type allows you to call REST APIs.
 
 | Property    | Description                                                                                  | Notes                                   | Default |
 |-------------|----------------------------------------------------------------------------------------------|-----------------------------------------|---------|
@@ -157,34 +269,7 @@ The rest step is a step that will call a REST API (GET, POST, PUT, DELETE, PATCH
 | **data_key**| The key used to grab the data from the **_data** property to send to the REST API            | Higher in hierarchy than **body**       |         |
 | **authentication** | The authentication dict                                |                                         |         |
 
-Example of rest step with authentication:
-
-```yaml
-- name: get template demo
-  type: rest
-  result_key: template_info
-  rest:
-    uri: https://awx.demo.com/api/v2/job_templates/
-    query:
-      name: Demo Job Template
-    authentication: 
-      type: basic
-      secret: awx_credential
-  jq_expression: ".results[0] | {id:.id, name:.name,related:.related}"
-
-- name: post extravars to awx
-  type: rest
-  description: post extravars to awx
-  result_key: job_id
-  rest:
-    uri: "https://awx.demo.com{{template_info.related.launch}}"
-    method: post
-    authentication: 
-      type: basic
-      secret: awx_credential
-    data_key: extravars 
-  jq_expression: "{job_id:.id, status:\"running\"}"
-```
+The `authentication` property can be used to specify the type of authentication to use for the REST API call.
 
 | Property   | Description                                                                                       | Notes / Default                |
 |------------|---------------------------------------------------------------------------------------------------|-------------------------------|
@@ -192,91 +277,120 @@ Example of rest step with authentication:
 | **secret** | The secret to use for authentication                                                              | Should return the proper type  |
 | **bearer** | The bearer prefix to use for token authentication (e.g., `Bearer <token>`)                        | Default: `Bearer`              |
 
-## The jq step
 
-The jq step is a step that will use jq to transform the data.
-
-| Property      | Description                                                                                  | Notes                                   | Default |
-|---------------|----------------------------------------------------------------------------------------------|-----------------------------------------|---------|
-| **expression**| The jq expression to transform the data                                                      |                                         |         |
-| **data_key**  | The key used to grab the data from the **_data** property to transform                       |                                         |         |
-
-## The jinja step
-
-The jinja step is a step that will use jinja2 to transform the data.
-
-| Property    | Description                                                                                  | Notes                                   | Default |
-|-------------|----------------------------------------------------------------------------------------------|-----------------------------------------|---------|
-| **path**    | The jinja2 template to use for transformation                                                | Relative to TEMPLATES_PATH              |         |
-| **data_key**| The key used to grab the data from the **_data** property to transform                       |                                         |         |
-| **parse**   | Optionally parse the data as JSON or YAML                                                    | No parsing, just a string               |         |
-
-Example of jinja step:
-
+Basic GET:
 ```yaml
-- name: prepare extravars
-  type: jinja
-  result_key: extravars
-  jinja:
-    data_key: __input__
-    path: "extravars.j2"
-    parse: json
-  jq_expression: "{extra_vars: . }"
-```
-
-## The flow step
-
-The flow step is a step that will call another flow. Useful for reusing flows and creating complex flows.
-
-| Property    | Description                                                                                  | Notes                                   | Default |
-|-------------|----------------------------------------------------------------------------------------------|-----------------------------------------|---------|
-| **path**    | The path of the flow to call                                                                 | Relative to FLOWS_PATH                  |         |
-| **data_key**| The key used to grab the data from the **_data** property to send to the flow                |                                         |         |
-
-## The flow loop step
-
-The flow loop step is a step that will call another flow in a loop.
-
-| Property    | Description                                                                                  | Notes                                   | Default |
-|-------------|----------------------------------------------------------------------------------------------|-----------------------------------------|---------|
-| **path**    | The path to the flow to call                                                                 | Relative to FLOWS_PATH                  |         |
-| **data_key**| The key used to grab the data from the **_data** property to send to the flow                | Must be a list of items to loop over    |         |
-
-Example of flow with rest and flow loop step:
-
-```yaml
-name: Process snow tickets
-# cron: "*/1 * * * *"
-every_seconds: 5
-steps:
-- name: get new tickets from service now
+- name: get tickets
   type: rest
   result_key: tickets
   rest:
-    uri: "https://dev.service-now.com/api/now/table/x_xxxx"
-    query:
-      sysparm_query: request_type=ticket^status=new
-      sysparm_fields: sys_id,sys_created_by,payload,sys_created,sys_created_on,job_id
-      sysparm_limit: 5
+    uri: https://dev.service-now.com/api/now/table/x_xxxx
     authentication:
       type: basic
       secret: snow_credential
-  jq_expression: ".result"
-  
-
-- name: loop tickets to awx
-  type: flow_loop
-  result_key: flow_loop
-  flow_loop:
-    path: ticket_to_awx.yml
-    data_key: tickets
-  when: 
-  - "tickets | length > 0"
 ```
 
-## The jira names merge step
+GET with query parameters and jq transformation:
+```yaml
+- name: fetch open tickets
+  type: rest
+  result_key: tickets
+  rest:
+    uri: https://dev.service-now.com/api/now/table/ticket
+    query:
+      status: open
+      limit: 10
+    authentication:
+      type: basic
+      secret: snow_credential
+  jq_expression: ".result | map(select(.priority == \"high\"))"
+```
 
-The jira names merge step is a custom step that reformats fields from Jira results, merging the names/labels.
+POST with JSON body:
+```yaml
+- name: create ticket
+  type: rest
+  result_key: ticket_response
+  rest:
+    uri: https://dev.service-now.com/api/now/table/ticket
+    method: POST
+    headers:
+      Content-Type: application/json
+    body: |
+      {
+        "short_description": "{{ issue_summary }}",
+        "description": "{{ issue_details }}"
+      }
+    authentication:
+      type: basic
+      secret: snow_credential
+```
+
+POST with data_key:
+```yaml
+- name: create ticket
+  type: rest
+  result_key: ticket_response
+  rest:
+    uri: https://dev.service-now.com/api/now/table/ticket
+    method: POST
+    headers:
+      Content-Type: application/json
+    data_key: ticket_data  # Use data from the flow
+    authentication:
+      type: basic
+      secret: snow_credential
+```
+
+### Jinja Step
+The `jinja` step type allows you to transform data using Jinja2 templates.
+
+```yaml
+- name: render summary
+  type: jinja
+  jinja:
+    path: templates/summary.j2
+    data_key: tickets
+  result_key: summary
+```
+
+### Jq Step
+The `jq` step type allows you to transform data using jq.
+
+```yaml
+- name: filter tickets
+  type: jq
+  jq:
+    expression: ".tickets[] | select(.priority == \"high\")"
+  result_key: high_priority_tickets
+```
+
+### Flow Step
+The `flow` step type allows you to call another flow.
+
+```yaml
+- name: process ticket
+  type: flow
+  result_key: ticket_result
+  flow:
+    path: process_ticket.yml
+    data_key: ticket
+```
+
+### Flow Loop Step
+The `flow_loop` step type allows you to call another flow in a loop.
+
+```yaml
+- name: process tickets
+  type: flow_loop
+  result_key: ticket_results
+  flow_loop:
+    path: process_ticket.yml
+    data_key: tickets_list
+
+```
+### Jira Names Merge Step
+The `jira_names_merge` step type reformats fields from Jira results.
 
 | Property    | Description                                                                                  | Notes                                   | Default |
 |-------------|----------------------------------------------------------------------------------------------|-----------------------------------------|---------|
@@ -285,56 +399,80 @@ The jira names merge step is a custom step that reformats fields from Jira resul
 
 Note: The `expand=names` query must be used so Jira adds the names to the result.
 
-# The flow scheduler
 
-The flow scheduler is a simple scheduler that will run the flows based on a cron expression or every x seconds.  It will use the `schedule` library to run the flows.  The scheduler will run in a separate thread and will use the `flow_processor` to run the flows.  
-  
-
-> **API Documentation**  
->  
-> Access the interactive Swagger UI at:  
->  
-> ```
-> /api/docs
-> ```
-
-## Add a flow
-
-You can add a flow by path (relative to FLOWS_PATH).  It's will stored in the scheduler with a guid, so it can later be retrieved or removed.
-
-The schedule will automatically search for the **autostart** property in the config file, which is a list of relative paths.  The scheduler will add the flows to the scheduler and start them.  The autostart property is optional, if not present, the scheduler will not start any flows.
-
-Only flows with a schedule will be added.  If you want to launch a flow without a schedule, you can use the `/api/flows/launch` POST endpoint.
-
-Using the api `/api/flows/add` POST you can add a flow to the scheduler.  The flow will be added to the scheduler and started.  The flow will be added to the scheduler with a guid, so it can later be retrieved or removed.  
-
-```
-{
-  "path": "flow1.yml"
-}
+```yaml
+- name: merge custom fields
+  type: jira_names_merge
+  result_key: tickets
+  jira_names_merge:
+    data_key: tickets_raw
+    list_key: issues
+  jq_expression: "[.[] | {id:.id, key:.key, self:.self}]"
 ```
 
-## Remove a flow
+### Debug Step
+The `debug` step type allows you to log data for debugging purposes.
 
-Use the api `/api/flows/{flow_id}` DELETE to remove a flow.  
+```yaml
+- name: debug ticket data
+  type: debug
+  debug:
+    data_key: ticket_data
+```
+### File Step
+The `file` step type allows you to read/write files.
 
-## Get added flows
+| Property   | Description                                                                                  | Notes                                   | Default |
+|------------|----------------------------------------------------------------------------------------------|-----------------------------------------|---------|
+| **path**   | The path to the file                                                                         | Allows jinja2 templating; relative to DATA_PATH |         |
+| **mode**   | The mode of the file                                                                         |                                         | read    |
+| **type**   | The type of the file                                                                         | (json, yaml)                            |         |
+| **data_key** | The key used to grab the data from the **_data** property to write to the file             |                                         |         |
 
-Use the api `/api/flows` to get a list of added flows.  
+Example of a file step that reads a JSON file and writes the result to a YAML file:
+```yaml
+- name: read input file
+  type: file
+  result_key: file_content
+  file:
+    path: input/data.json
+    mode: read
+    type: json
 
-## Launch a flow
+- name: write output file
+  type: file
+  file:
+    path: output/result_{{ __timestamp__ }}.yml
+    mode: write
+    type: yaml
+    data_key: "file_content"
+```
 
-The **launch_flow** method will launch a flow.  The flow is launched by path (relative to FLOWS_PATH).  
 
-## Get locks
 
-To make sure that the flows are not running at the same time, we will use locks.  The locks are stored in the **LOCK_PATH** directory.  The locks are created by the `flow_processor` and are removed when the flow is finished.  There is no timeout on the locks.  If the application should be terminated, the locks will be removed at first start.  
+## Scheduler
 
-Use the api `/api/locks` to get the list of locks.  
+- Flows can be scheduled via cron or interval (`every_seconds`).
+- The scheduler uses the same job system as ad hoc jobs.
+- Each scheduled flow tracks its last job ID.
 
-## Remove lock
+---
 
-Use the api `/api/locks/{flow_name}` DELETE to remove a lock.  The lock is removed by flow_name.
+## Advanced Features & Ideas
 
-## Remove all locks
-Use the api `/api/locks` DELETE to remove all locks.  The locks are removed by flow_name.
+- Secrets from other managers or database
+- Future: User/role management, LDAP, MFA, Redis for tokens
+- Extendable with new step types (database, Kafka, S3, etc.)
+
+---
+
+## API Documentation
+
+Interactive Swagger UI:  
+```
+/api/docs/
+```
+
+---
+
+**Questions or contributions welcome!**
