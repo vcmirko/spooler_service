@@ -115,12 +115,24 @@ def abandon_all_running_jobs():
     db.commit()
     db.close()
 
-def delete_jobs_older_than(days):
-    """Delete jobs whose end_time is older than the given number of days."""
+def delete_jobs_filtered(days=None, status=None, state=None):
     db = SessionLocal()
-    cutoff = time.time() - days * 86400  # 86400 seconds in a day
-    deleted = db.query(Job).filter(Job.end_time != None, Job.end_time < cutoff).delete(synchronize_session=False)
+    query = db.query(Job)
+    if days is not None:
+        cutoff = time.time() - days * 86400
+        query = query.filter(Job.end_time != None, Job.end_time < cutoff)
+    if status:
+        query = query.filter(Job.status == status)
+    if state:
+        query = query.filter(Job.state == state)
+    deleted = query.delete(synchronize_session=False)
     db.commit()
     db.close()
-    return deleted  # returns the number of deleted jobs
+    return deleted
 
+def delete_job_by_id(job_id):
+    db = SessionLocal()
+    deleted = db.query(Job).filter(Job.id == job_id).delete()
+    db.commit()
+    db.close()
+    return deleted

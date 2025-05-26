@@ -405,14 +405,28 @@
                 "tags": [
                     "jobs"
                 ],
-                "summary": "Delete jobs older than a specified number of days",
+                "summary": "Delete jobs filtered by age, status, and state",
                 "parameters": [
                     {
                         "name": "older_than_days",
                         "in": "query",
                         "type": "integer",
-                        "required": true,
+                        "required": false,
                         "description": "Delete jobs whose end_time is older than this many days"
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "type": "string",
+                        "required": false,
+                        "description": "Delete jobs with this status"
+                    },
+                    {
+                        "name": "state",
+                        "in": "query",
+                        "type": "string",
+                        "required": false,
+                        "description": "Delete jobs with this state"
                     }
                 ],
                 "security": [
@@ -433,12 +447,20 @@
                                 "older_than_days": {
                                     "type": "integer",
                                     "description": "Days threshold used"
+                                },
+                                "status": {
+                                    "type": "string",
+                                    "description": "Status filter used"
+                                },
+                                "state": {
+                                    "type": "string",
+                                    "description": "State filter used"
                                 }
                             }
                         }
                     },
                     "400": {
-                        "description": "Missing or invalid 'older_than_days' parameter"
+                        "description": "Invalid parameter"
                     }
                 }
             }
@@ -494,6 +516,47 @@
                                 },
                                 "errors": {
                                     "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Job not found"
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "jobs"
+                ],
+                "summary": "Delete a specific job by ID",
+                "parameters": [
+                    {
+                        "name": "job_id",
+                        "in": "path",
+                        "required": true,
+                        "type": "string",
+                        "description": "Job ID"
+                    }
+                ],
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Job deleted successfully",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "deleted": {
+                                    "type": "integer",
+                                    "description": "Number of jobs deleted (should be 1)"
+                                },
+                                "job_id": {
+                                    "type": "string",
+                                    "description": "ID of the deleted job"
                                 }
                             }
                         }

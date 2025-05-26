@@ -16,25 +16,51 @@ class FlowRunner:
             try:
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                     future = executor.submit(Flow(path=flow_path, payload=payload or {}).process)
-                    result = future.result(timeout=timeout)
-                    # if an exit step raise FlowExitException, it will have been caught in the flow process and returns a tuple (data + exit)
-                    if isinstance(result, tuple) and isinstance(result[1], dict) and result[1].get("exit"):
-                        update_job(
-                            job_id,
-                            state=JobState.finished,
-                            status=JobStatus.exit,
-                            result=result[0] | result[1].get("exit_result", {}),
-                            end_time=time.time(),
-                            errors=result[1].get("exit_message")
-                        )
-                    else:
-                        update_job(job_id, state=JobState.finished, status=JobStatus.success, result=result, end_time=time.time())
+                    result, status_result = future.result(timeout=timeout)
+                    status_type = status_result.get("type", "success")
+                    status_message = status_result.get("message", "Flow completed successfully.")
+                    match status_type:
+                        case "exit":
+                            update_job(
+                                job_id,
+                                state=JobState.finished,
+                                status=JobStatus.exit,
+                                result=result,
+                                end_time=time.time(),
+                                errors=status_message
+                            )
+                        case "failed":
+                            update_job(
+                                job_id,
+                                state=JobState.finished,
+                                status=JobStatus.failed,
+                                result=result,
+                                end_time=time.time(),
+                                errors=status_message
+                            )
+                        case "success":
+                            update_job(
+                                job_id,
+                                state=JobState.finished,
+                                status=JobStatus.success,
+                                result=result,
+                                end_time=time.time()
+                            )
+                        case _:
+                            logging.error(f"Unknown status type: {status_type}")
+                            update_job(
+                                job_id,
+                                state=JobState.finished,
+                                status=JobStatus.error,
+                                errors=f"Unknown status type: {status_type}",
+                                end_time=time.time()
+                            )
             except concurrent.futures.TimeoutError:
                 msg = f"Flow {flow_path} timed out after {timeout} seconds"
                 logging.error(msg)
                 update_job(job_id, state=JobState.finished, status=JobStatus.failed, errors=msg, end_time=time.time())
             except Exception as e:
-                logging.error(f"Flow {flow_path} failed: {e}")
+                logging.error(f"Flow {flow_path} failed in flow_runner: {e}")
                 update_job(job_id, state=JobState.finished, status=JobStatus.failed, errors=str(e), end_time=time.time())
         threading.Thread(target=run, daemon=True).start()
         return job_id

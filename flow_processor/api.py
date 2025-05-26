@@ -17,7 +17,7 @@ from flow_processor.exceptions import (
 )
 from flow_processor.scheduler_service import SchedulerService
 from flow_processor.flow_runner import FlowRunner
-from flow_processor.job_store import get_job, list_jobs, delete_jobs_older_than
+from flow_processor.job_store import get_job, list_jobs, delete_jobs_filtered, delete_job_by_id
 from flow_processor.utils import to_iso, parse_time_param
 
 # Flask app setup
@@ -195,6 +195,7 @@ def list_jobs_api():
         {
             "id": job.id,
             "meta": job.meta,
+            "errors": job.errors,
             "state": job.state.value if job.state else None,
             "status": job.status.value if job.status else None,
             "start_time": to_iso(job.start_time),
@@ -222,20 +223,42 @@ def get_job_api(job_id):
     }), 200
 
 @app.route("/api/jobs", methods=["DELETE"])
-def delete_old_jobs():
+def delete_jobs():
     """
-    Delete jobs whose end_time is older than the given number of days.
-    Query param: older_than_days (int, required)
+    Delete jobs filtered by end_time (older_than_days), status, and state.
+    Query params:
+      - older_than_days (int, optional)
+      - status (string, optional)
+      - state (string, optional)
     """
     try:
-        days = int(request.args.get("older_than_days"))
-        if days < 1:
-            return jsonify({"error": "'older_than_days' must be a positive integer"}), 400
-    except (TypeError, ValueError):
-        return jsonify({"error": "Missing or invalid 'older_than_days' parameter"}), 400
+        days = request.args.get("older_than_days")
+        days = int(days) if days is not None else None
+        status = request.args.get("status", None)
+        state = request.args.get("state", None)
+    except ValueError:
+        return jsonify({"error": "Invalid parameter"}), 400
 
-    deleted_count = delete_jobs_older_than(days)
-    return jsonify({"deleted": deleted_count, "older_than_days": days}), 200
+    from flow_processor.job_store import delete_jobs_filtered
+    deleted_count = delete_jobs_filtered(days, status, state)
+    return jsonify({
+        "deleted": deleted_count,
+        "older_than_days": days,
+        "status": status,
+        "state": state
+    }), 200
+
+@app.route("/api/jobs/<job_id>", methods=["DELETE"])
+def delete_job_by_id(job_id):
+    """
+    Delete a specific job by its ID.
+    """
+    from flow_processor.job_store import delete_job_by_id
+    deleted = delete_job_by_id(job_id)
+    if deleted:
+        return jsonify({"deleted": 1, "job_id": job_id}), 200
+    else:
+        return jsonify({"error": "Job not found"}), 404
 
 @app.route("/api/logs", methods=["GET"])
 def fetch_logs():

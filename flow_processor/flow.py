@@ -64,6 +64,9 @@ class Flow:
     def process(self):
         """Process the flow."""
 
+        failed = False
+        failed_message = None
+
         try:
 
             # loop over the steps, create the step object, since the step can a subclass of step, we need to use the factory
@@ -74,6 +77,9 @@ class Flow:
                 try:
                     # call the step factory to create the step object
                     create_step(step, self).process()
+
+                except FlowExitException as e:
+                    return self._data, {"type": "exit", "message": str(e)}
 
                 # we want to catch all errors in the step, and continue the flow if required
                 except Exception as e:
@@ -97,8 +103,7 @@ class Flow:
                         continue
                     else:
                         raise e
-        except FlowExitException as e:
-            return self._data, {"exit": True, "exit_message": str(e)}
+
         except Exception as e:
             # we silent the error here, the flow failed, the error will be logged
             logging.error(f"{self._representation} Error in flow: {str(e)}")
@@ -109,14 +114,20 @@ class Flow:
                 if finally_step:
                     logging.info(f"{self._representation} Calling finally step {self._finally_step}")
                     create_step(finally_step, self).process(True) # run with ignore_when=True, finally always runs
-
+                else:
+                    failed = True
+                    failed_message = f"Flow {self._name} failed, {str(e)}"
             except Exception as e:
                 logging.error(f"{self._representation} Error in finally step {self._finally_step}: {str(e)}")
+                failed = True
 
         finally:
             logging.debug(f"{self._representation} Flow {self._name} finished.")
 
-        return self._data
+        if failed:
+            return self._data, {"type":"failed", "message": failed_message}
+        else:
+            return self._data, {"type":"success", "message": "Flow completed successfully."}
     
     
     def _load_secrets(self):
