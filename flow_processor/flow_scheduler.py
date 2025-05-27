@@ -9,7 +9,7 @@ from croniter import croniter
 from datetime import datetime
 from threading import Thread
 from flow_processor.flow import Flow
-from flow_processor.config import FLOWS_PATH, FLOW_TIMEOUT_SECONDS
+from flow_processor.config import FLOW_TIMEOUT_SECONDS, TZ
 from flow_processor.exceptions import NoScheduleException,FlowAlreadyAddedException,FlowAlreadyRunningException,FlowNotFoundException,FlowParsingException
 from flow_processor.flow_runner import FlowRunner
 
@@ -149,7 +149,7 @@ class FlowScheduler:
 
         def cron_job():
             while not stop_event.is_set():
-                now = datetime.now()
+                now = datetime.now(TZ)
                 cron = croniter(cron_expression, now)
                 next_run = cron.get_next(datetime)
                 delay = (next_run - now).total_seconds()
