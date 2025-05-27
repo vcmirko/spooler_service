@@ -1,0 +1,1 @@
+use this folder as a template for your data folder
