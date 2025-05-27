@@ -525,10 +525,10 @@ In the example above, you see the use of `__timestamp__`, which is a special var
 
 ## Scheduler
 
-- Flows can be scheduled via cron or interval (`every_seconds`).
+- Flows can be scheduled via `cron` or interval (`every_seconds`).
 - The scheduler uses the same job system as ad hoc jobs.
 - Each scheduled flow tracks its last job ID.
-
+- Each job ran by the scheduler has the schedule ID in the `schedule_id` field of the meta property
 
 
 ## Advanced Features & Ideas
