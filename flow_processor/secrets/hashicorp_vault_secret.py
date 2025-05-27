@@ -1,6 +1,6 @@
 from ..secret import Secret
 from flow_processor.exceptions import BadSecretException
-from flow_processor.config import HASHICORP_VAULT_TOKEN
+from flow_processor.config import HASHICORP_VAULT_TOKEN, HASHICORP_VAULT_CACHE_TTL
 import requests
 import time
 
@@ -45,8 +45,8 @@ class HashicorpVaultSecret(Secret):
             from flow_processor.utils import apply_jq_filter
             data = apply_jq_filter(data, self._jq_expression)
 
-        # Cache result for 60 seconds
+        # Cache result 
         self._cache[cache_key] = data
-        self._cache_expiry[cache_key] = now + 60
+        self._cache_expiry[cache_key] = now + HASHICORP_VAULT_CACHE_TTL
 
         return data

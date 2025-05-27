@@ -30,23 +30,22 @@ A flexible job and flow orchestration service for running, scheduling, and track
 ## Environment Variables
 
 All are optional and have sensible defaults.
-
-| Variable         | Description                                 | Default                |
-| Variable         | Description                                 | Default                |
-|------------------|---------------------------------------------|------------------------|
-| **LOG_PATH**     | Full path to the directory for log files         | `<DATA_PATH>/logs/`           |
-| **LOG_FILE_NAME**| Name of the log file                        | `spooler_service.log`  |
-| **LOG_LEVEL**    | Log level for the application               | `INFO`                 |
-| **FLOWS_PATH**   | Full path to the directory for flow files        | `<DATA_PATH>/flows/`          |
-| **TEMPLATES_PATH**| Full path to the directory for template files   | `<DATA_PATH>/templates/`      |
-| **SECRETS_PATH** | Full path to the secrets file                    | `<DATA_PATH>/secrets.yml`     |
-| **CONFIG_FILE**  | Full path to the configuration file              | `<DATA_PATH>/config.yml`      |
-| **API_PORT**     | Port for the API server                     | `5000`                 |
-| **API_TOKEN**    | Token for API authentication                | `default_token`        |
-| **HASHICORP_VAULT_TOKEN** | Token for HashiCorp Vault          |                        |
-| **FLOW_TIMEOUT_SECONDS** | Default timeout for flows (seconds) | `600`                  |
-| **TIMEZONE**     | Timezone for API input/output (e.g. `UTC`, `Europe/Berlin`) | `UTC` |
-| **JOBS_DB_PATH** | Full path to the jobs database file (SQLite)     | `<DATA_PATH>/jobs.sqlite`     |
+| Variable                | Description                                              | Default                      |
+|-------------------------|----------------------------------------------------------|------------------------------|
+| **LOG_PATH**            | Full path to the directory for log files                 | `<DATA_PATH>/logs/`          |
+| **LOG_FILE_NAME**       | Name of the log file                                     | `spooler_service.log`        |
+| **LOG_LEVEL**           | Log level for the application                            | `INFO`                       |
+| **FLOWS_PATH**          | Full path to the directory for flow files                | `<DATA_PATH>/flows/`         |
+| **TEMPLATES_PATH**      | Full path to the directory for template files            | `<DATA_PATH>/templates/`     |
+| **SECRETS_PATH**        | Full path to the secrets file                            | `<DATA_PATH>/secrets.yml`    |
+| **CONFIG_FILE**         | Full path to the configuration file                      | `<DATA_PATH>/config.yml`     |
+| **API_PORT**            | Port for the API server                                  | `5000`                       |
+| **API_TOKEN**           | Token for API authentication                             | `default_token`              |
+| **HASHICORP_VAULT_TOKEN** | Token for HashiCorp Vault                             |                              |
+| **FLOW_TIMEOUT_SECONDS**| Default timeout for flows (seconds)                      | `600`                        |
+| **TIMEZONE**            | Timezone for API input/output (e.g. `UTC`, `Europe/Berlin`) | `UTC`                   |
+| **JOBS_DB_PATH**        | Full path to the jobs database file (SQLite)             | `<DATA_PATH>/jobs.sqlite`    |
+| **HASHICORP_VAULT_CACHE_TTL** | TTL for HashiCorp Vault secrets cache (in seconds) | `60`                         |
 
 
 **TIMEZONE** is used for the cron jobs scheduling, all API output (ISO 8601) and for interpreting incoming date/time filters if no timezone is provided.

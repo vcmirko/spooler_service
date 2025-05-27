@@ -42,6 +42,7 @@ SWAGGER_JSON_PATH = os.path.join(BASE_PATH, "static/swagger.json")
 
 # --- Vault ---
 HASHICORP_VAULT_TOKEN = os.getenv("HASHICORP_VAULT_TOKEN", None)
+HASHICORP_VAULT_CACHE_TTL = int(os.getenv("HASHICORP_VAULT_CACHE_TTL", 60))  # Default: 1 minute
 
 # --- Flow ---
 FLOW_TIMEOUT_SECONDS = int(os.getenv("FLOW_TIMEOUT", 600))  # Default: 10 minutes
