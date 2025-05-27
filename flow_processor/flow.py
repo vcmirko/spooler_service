@@ -27,7 +27,7 @@ class Flow:
         except Exception as e:
             raise e
 
-    def __init__(self, path, payload={}, loop_index=None):
+    def __init__(self, path, payload={}, loop_index=None, job_id=None):
         flow = {}
 
         try:
@@ -49,8 +49,10 @@ class Flow:
         self._data["__errors__"] = []             # a list of errors that occurred during the flow
         self._data["__input__"] = payload         # a flow can have an input payload, from a parent, or from the api
         self._secrets = self._load_secrets()      # each flow loads the secrets and temporarily stores them in the flow
-        self._data["__loop_index__"] = loop_index        # a flow can have an index, for example, when looping over a list
+        self._data["__loop_index__"] = loop_index # a flow can have an index, for example, when looping over a list
+        self._data["__job_id__"] = job_id         # the main job id, if the flow is run as a job
         self._data["__timestamp__"] = make_timestamp() # a flow can have a timestamp, for example, when looping over a list
+        self._data["__flow_path__"] = path             # the path of the flow, for reference, in case it's required later in a step
         self._representation = f"[{self._name}]"
         if loop_index:
             self._representation += f"[{loop_index}]"
@@ -83,9 +85,14 @@ class Flow:
 
                 # we want to catch all errors in the step, and continue the flow if required
                 except Exception as e:
+                    # Get a good representation of the error
+                    if hasattr(e, "__dict__") and e.__dict__:
+                        error_detail = dict(e.__dict__)
+                    else:
+                        error_detail = str(e)
                     error_obj = {
                         "step": step["name"],
-                        "error": dict(e.__dict__)
+                        "error": error_detail
                     }
                     error_one_line = str(dict(e.__dict__)).replace("\n", " ").replace("\r", " ")
                     continue_step = False

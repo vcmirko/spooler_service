@@ -15,7 +15,7 @@ class FlowRunner:
             update_job(job_id, state=JobState.running, status=JobStatus.unknown, start_time=time.time())
             try:
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                    future = executor.submit(Flow(path=flow_path, payload=payload or {}).process)
+                    future = executor.submit(Flow(path=flow_path, payload=payload or {}, job_id=job_id).process)
                     result, status_result = future.result(timeout=timeout)
                     status_type = status_result.get("type", "success")
                     status_message = status_result.get("message", "Flow completed successfully.")
