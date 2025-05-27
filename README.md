@@ -52,8 +52,8 @@ All are optional and have sensible defaults.
 
 ## Security & Secrets
 
-Secrets can be stored in `secrets.yml` or fetched from HashiCorp Vault (with 1-minute TTL).  
-Set `HASHICORP_VAULT_TOKEN` for Vault access.
+Secrets can be stored in `secrets.yml` or fetched from HashiCorp Vault (with TTL option, default 1 minute).  
+Set `HASHICORP_VAULT_TOKEN` for Vault access and `HASHICORP_VAULT_CACHE_TTL` for the cache duration.
 
 Example `secrets.yml`:
 ```yaml
@@ -80,22 +80,21 @@ All endpoints require `Authorization: Bearer <API_TOKEN>`.
 ## API Structure
 
 ```
-/api/
+/api/v1/
 ├── jobs/
-│   ├── [POST]      /api/jobs                # Launch a new job
-│   ├── [GET]       /api/jobs                # List jobs (with filters)
-│   ├── [GET]       /api/jobs/{job_id}       # Get job details
-│   ├── [DELETE]    /api/jobs                # Delete jobs 
-|   ├── [DELETE]    /api/jobs/{job_id}       # Delete a specific job
+│   ├── [POST]      /api/v1/jobs                # Launch a new job
+│   ├── [GET]       /api/v1/jobs                # List jobs (with filters)
+│   ├── [GET]       /api/v1/jobs/{job_id}       # Get job details
+│   ├── [DELETE]    /api/v1/jobs                # Delete jobs 
+|   ├── [DELETE]    /api/v1/jobs/{job_id}       # Delete a specific job
 │
 ├── schedules/
-│   ├── [POST]      /api/schedules           # Create a new schedule
-│   ├── [GET]       /api/schedules           # List schedules
-│   ├── [DELETE]    /api/schedules/{id}      # Remove a schedule
+│   ├── [POST]      /api/v1/schedules           # Create a new schedule
+│   ├── [GET]       /api/v1/schedules           # List schedules
+│   ├── [DELETE]    /api/v1/schedules/{id}      # Remove a schedule
 │
 ├── logs/
-│   ├── [GET]       /api/logs                # List log files
-│   ├── [GET]       /api/logs/{filename}     # Download/view a log file
+│   ├── [GET]       /api/v1/logs                # List log files
 │
 ├── docs/
 │   ├── [GET]       /api/docs/               # Swagger UI
@@ -104,7 +103,7 @@ All endpoints require `Authorization: Bearer <API_TOKEN>`.
 ### Launch a Job (Ad Hoc Flow Execution)
 
 ```bash
-curl -X POST http://localhost:5000/api/jobs \
+curl -X POST http://localhost:5000/api/v1/jobs \
   -H "Authorization: Bearer $API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"path": "flow1.yml", "data": {"foo": "bar"}, "timeout_seconds": 120}'
@@ -116,7 +115,7 @@ curl -X POST http://localhost:5000/api/jobs \
 ### List Jobs (with Filtering & Pagination)
 
 ```bash
-curl -X GET "http://localhost:5000/api/jobs?state=finished&limit=10&offset=0&start_time_from=2024-05-23T00:00:00+02:00"
+curl -X GET "http://localhost:5000/api/v1/jobs?state=finished&limit=10&offset=0&start_time_from=2024-05-23T00:00:00+02:00"
 ```
 - Supports filters: `state`, `status`, `start_time_from`, `start_time_to`, `end_time_from`, `end_time_to`
 - Time filters accept ISO 8601 or human-friendly datetimes (timezone optional; defaults to `TIMEZONE`)
@@ -124,13 +123,13 @@ curl -X GET "http://localhost:5000/api/jobs?state=finished&limit=10&offset=0&sta
 ### Get Job Details
 
 ```bash
-curl -X GET http://localhost:5000/api/jobs/<job_id>
+curl -X GET http://localhost:5000/api/v1/jobs/<job_id>
 ```
 
 ### Delete Jobs (all, or filtered)
 
 ```bash
-curl -X DELETE "http://localhost:5000/api/jobs?older_than_days=30&status=finished&state=success"
+curl -X DELETE "http://localhost:5000/api/v1/jobs?older_than_days=30&status=finished&state=success"
 ```
 - Deletes jobs whose `end_time` is older than the specified number of days.
 - Supports query parameters:
@@ -142,7 +141,7 @@ curl -X DELETE "http://localhost:5000/api/jobs?older_than_days=30&status=finishe
 ### Delete a Specific Job
 
 ```bash
-curl -X DELETE http://localhost:5000/api/jobs/<job_id>
+curl -X DELETE http://localhost:5000/api/v1/jobs/<job_id>
 ```
 
 ### Schedule a Flow
@@ -151,7 +150,7 @@ Schedule can be either `cron` or `every_seconds`.
 You can also specify a `timeout_seconds` for the schedule.
 
 ```bash
-curl -X POST http://localhost:5000/api/schedules \
+curl -X POST http://localhost:5000/api/v1/schedules \
   -H "Authorization: Bearer $API_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"path": "flow1.yml", "cron": "0 * * * *"}'
@@ -160,18 +159,18 @@ curl -X POST http://localhost:5000/api/schedules \
 ### List Schedules
 
 ```bash
-curl -X GET http://localhost:5000/api/schedules
+curl -X GET http://localhost:5000/api/v1/schedules
 ```
 
 ### Remove a Schedule
 
 ```bash
-curl -X DELETE http://localhost:5000/api/schedules/<schedule_id>
+curl -X DELETE http://localhost:5000/api/v1/schedules/<schedule_id>
 ```
 
 ### View Logs
 ```bash
-curl -X GET http://localhost:5000/api/logs
+curl -X GET http://localhost:5000/api/v1/logs
 ```
 
 ## Time Handling

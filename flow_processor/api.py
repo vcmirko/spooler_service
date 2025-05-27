@@ -17,7 +17,7 @@ from flow_processor.exceptions import (
 )
 from flow_processor.scheduler_service import SchedulerService
 from flow_processor.flow_runner import FlowRunner
-from flow_processor.job_store import get_job, list_jobs, delete_jobs_filtered, delete_job_by_id
+from flow_processor.job_store import get_job, list_jobs
 from flow_processor.utils import to_iso, parse_time_param
 
 # Flask app setup
@@ -82,9 +82,9 @@ def validate_token():
         return jsonify({"error": "Unauthorized"}), 401
 
 
-# Grouped under /api/schedules
+# Grouped under /api/v1/schedules
 
-@app.route("/api/schedules", methods=["GET"])
+@app.route("/api/v1/schedules", methods=["GET"])
 def list_schedules():
     """List all added flows."""
 
@@ -93,7 +93,7 @@ def list_schedules():
     return jsonify({"schedules": schedules}), 200
 
 
-@app.route("/api/schedules/<schedule_id>", methods=["DELETE"])
+@app.route("/api/v1/schedules/<schedule_id>", methods=["DELETE"])
 def remove_schedule(schedule_id):
     """Remove a scheduled flow by ID."""
     try:
@@ -106,7 +106,7 @@ def remove_schedule(schedule_id):
         return jsonify({"error": str(e)}), 500
     
 # Add a new schedule
-@app.route("/api/schedules", methods=["POST"])
+@app.route("/api/v1/schedules", methods=["POST"])
 def add_schedule():
     """Add a new scheduled flow."""
     schedule = request.json
@@ -127,7 +127,7 @@ def add_schedule():
         logging.error("Error adding schedule: %s", e)
         return jsonify({"error": str(e)}), 500
 
-@app.route("/api/jobs", methods=["POST"])
+@app.route("/api/v1/jobs", methods=["POST"])
 def launch_job():
     """Launch a flow as a job asynchronously and return a job_id."""
     data = request.json
@@ -161,7 +161,7 @@ def launch_job():
     return jsonify({"job_id": job_id}), 202
 
 
-@app.route("/api/jobs", methods=["GET"])
+@app.route("/api/v1/jobs", methods=["GET"])
 def list_jobs_api():
     """List all jobs (metadata only) with pagination and filtering."""
     try:
@@ -205,7 +205,7 @@ def list_jobs_api():
     ]
     return jsonify({"jobs": jobs_meta, "limit": limit, "offset": offset}), 200
 
-@app.route("/api/jobs/<job_id>", methods=["GET"])
+@app.route("/api/v1/jobs/<job_id>", methods=["GET"])
 def get_job_api(job_id):
     """Get full details for a specific job."""
     job = get_job(job_id)
@@ -222,7 +222,7 @@ def get_job_api(job_id):
         "errors": job.errors,
     }), 200
 
-@app.route("/api/jobs", methods=["DELETE"])
+@app.route("/api/v1/jobs", methods=["DELETE"])
 def delete_jobs():
     """
     Delete jobs filtered by end_time (older_than_days), status, and state.
@@ -248,7 +248,7 @@ def delete_jobs():
         "state": state
     }), 200
 
-@app.route("/api/jobs/<job_id>", methods=["DELETE"])
+@app.route("/api/v1/jobs/<job_id>", methods=["DELETE"])
 def delete_job_by_id(job_id):
     """
     Delete a specific job by its ID.
@@ -260,7 +260,7 @@ def delete_job_by_id(job_id):
     else:
         return jsonify({"error": "Job not found"}), 404
 
-@app.route("/api/logs", methods=["GET"])
+@app.route("/api/v1/logs", methods=["GET"])
 def fetch_logs():
     """
     Fetch the latest log lines.
