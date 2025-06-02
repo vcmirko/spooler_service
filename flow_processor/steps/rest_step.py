@@ -4,10 +4,9 @@ import logging
 import requests
 import urllib3
 
-from flow_processor.config import LOG_LEVEL
 from flow_processor.utils import apply_jinja2
 
-from ..step import Step
+from flow_processor.step import Step
 
 
 class RestStepException(Exception):
@@ -68,10 +67,8 @@ class RestStep(Step):
         if not enabled:
             return
 
-        if LOG_LEVEL == "DEBUG":
-            logging.debug("%s -> %s %s", self._representation, self._method, self._uri)
-        else:
-            logging.info(self._representation)
+        logging.debug("%s -> %s %s", self._representation, self._method, self._uri)
+        logging.info(self._representation)
 
         # Make the REST request
         response = self._make_rest_request()

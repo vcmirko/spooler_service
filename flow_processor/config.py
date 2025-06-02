@@ -20,6 +20,7 @@ TEMPLATES_PATH.mkdir(exist_ok=True)
 SECRETS_PATH = Path(os.getenv("SECRETS_PATH", DATA_PATH / "secrets.yml"))
 JOBS_DB_PATH = Path(os.getenv("JOBS_DB_PATH", DATA_PATH / "jobs.sqlite"))
 CONFIG_FILE = Path(os.getenv("CONFIG_FILE", DATA_PATH / "config.yml"))
+SCRIPT_PATH = os.getcwd()
 
 # --- Database ---
 DATABASE_URL = f"sqlite:///{JOBS_DB_PATH}"

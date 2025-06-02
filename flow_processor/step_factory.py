@@ -1,4 +1,4 @@
-from steps import (
+from .steps import (
     DebugStep,
     ExitStep,
     FileStep,

@@ -7,34 +7,37 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_swagger_ui import get_swaggerui_blueprint
 
-from flow_processor.config import (
+from .config import (
     API_PORT,
     API_TOKEN,
     LOG_PATH,
+    SCRIPT_PATH,
     SWAGGER_JSON_PATH,
     SWAGGER_URL,
 )
-from flow_processor.exceptions import (
+from .exceptions import (
     FlowAlreadyAddedException,
     FlowNotFoundException,
     FlowParsingException,
 )
-from flow_processor.flow import Flow
-from flow_processor.flow_runner import FlowRunner
-from flow_processor.job_store import get_job, list_jobs
-from flow_processor.logs import get_logs
-from flow_processor.scheduler_service import SchedulerService
-from flow_processor.utils import parse_time_param, to_iso
+from .flow import Flow
+from .flow_runner import FlowRunner
+from .job_store import get_job, list_jobs
+from .logs import get_logs
+from .scheduler_service import SchedulerService
+from .utils import parse_time_param, to_iso
 
 # Flask app setup
 app = Flask(__name__)
 CORS(app)
 
+logger = logging.getLogger(__name__)
+
 # Load logging configuration
-with open("logging_config.json", mode="r") as f:
+with open(f"{SCRIPT_PATH}/flow_processor/logging_config.json", mode="r") as f:
     logging_config = json.load(f)
     # define the log file path
-    logging_config["file"]["filename"] = os.path.join(LOG_PATH, logging_config["file"]["filename"])
+    logging_config["handlers"]["file"]["filename"] = os.path.join(LOG_PATH, logging_config["handlers"]["file"]["filename"])
     logging.config.dictConfig(logging_config)
 
 # get the scheduler instance (singleton)
