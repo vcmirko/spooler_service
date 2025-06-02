@@ -21,11 +21,6 @@ SECRETS_PATH = Path(os.getenv("SECRETS_PATH", DATA_PATH / "secrets.yml"))
 JOBS_DB_PATH = Path(os.getenv("JOBS_DB_PATH", DATA_PATH / "jobs.sqlite"))
 CONFIG_FILE = Path(os.getenv("CONFIG_FILE", DATA_PATH / "config.yml"))
 
-# --- Logging ---
-LOG_FILE_NAME = os.getenv("LOG_FILE_NAME", "spooler_service.log")
-LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
-
 # --- Database ---
 DATABASE_URL = f"sqlite:///{JOBS_DB_PATH}"
 

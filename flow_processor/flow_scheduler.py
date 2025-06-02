@@ -18,10 +18,6 @@ from flow_processor.exceptions import (
 from flow_processor.flow import Flow
 from flow_processor.flow_runner import FlowRunner
 
-# logging.basicConfig()
-# schedule_logger = logging.getLogger('schedule')
-# schedule_logger.setLevel(level=logging.DEBUG)
-
 
 class FlowScheduler:
     def __init__(self):

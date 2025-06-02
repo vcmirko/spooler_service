@@ -1,7 +1,5 @@
 import os
 
-from flask import jsonify, request
-
 from flow_processor.config import LOG_FILE_NAME, LOG_PATH
 
 

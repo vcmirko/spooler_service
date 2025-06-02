@@ -62,7 +62,7 @@ class FlowRunner:
                                 end_time=time.time(),
                             )
                         case _:
-                            logging.error(f"Unknown status type: {status_type}")
+                            logging.error("Unknown status type: %s", status_type)
                             update_job(
                                 job_id,
                                 state=JobState.finished,
@@ -81,7 +81,7 @@ class FlowRunner:
                     end_time=time.time(),
                 )
             except Exception as e:
-                logging.error(f"Flow {flow_path} failed in flow_runner: {e}")
+                logging.error("Flow %s failed in flow_runner: %s", flow_path, str(e))
                 update_job(
                     job_id,
                     state=JobState.finished,

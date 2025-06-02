@@ -111,13 +111,13 @@ class Flow:
                     )
                     continue_step = False
                     logging.error(
-                        f"{self._representation} Error in step {step['name']}: {str(e)}"
+                        "%s Error in step %s: %s", self._representation, step["name"], str(e)
                     )
                     # check if the step has ignore_errors, if so, we will ignore the error if the regex matches
                     for err_regex in step.get("ignore_errors", []):
                         if re.match(err_regex, error_one_line):
                             logging.warning(
-                                f"{self._representation} Ignoring error in step {step['name']}: {str(e)}"
+                                "%s Ignoring error in step %s: %s", self._representation, step['name'], str(e)
                             )
                             error_obj["ignored"] = (
                                 f"Error ignored based on regex: {err_regex}"
@@ -132,8 +132,8 @@ class Flow:
                         raise e
 
         except Exception as e:
-            # we silent the error here, the flow failed, the error will be logged
-            logging.error(f"{self._representation} Error in flow: {str(e)}")
+            # we silence the error here, the flow failed, the error will be logged
+            logging.error("%s Error in flow: %s", self._representation, str(e))
 
             try:
                 finally_step = next(
@@ -142,7 +142,7 @@ class Flow:
                 # call the step factory to create the finally step object on failure
                 if finally_step:
                     logging.info(
-                        f"{self._representation} Calling finally step {self._finally_step}"
+                        "%s Calling finally step %s", self._representation, self._finally_step
                     )
                     create_step(finally_step, self).process(
                         True
@@ -152,12 +152,12 @@ class Flow:
                     failed_message = f"Flow {self._name} failed, {str(e)}"
             except Exception as e:
                 logging.error(
-                    f"{self._representation} Error in finally step {self._finally_step}: {str(e)}"
+                    "%s Error in finally step %s: %s", self._representation, self._finally_step, str(e)
                 )
                 failed = True
 
         finally:
-            logging.debug(f"{self._representation} Flow {self._name} finished.")
+            logging.debug("%s Flow %s finished.", self._representation, self._name)
 
         if failed:
             return self._data, {"type": "failed", "message": failed_message}

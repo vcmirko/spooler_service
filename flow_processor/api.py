@@ -1,5 +1,6 @@
 import json
 import logging
+import logging.config
 import os
 
 from flask import Flask, jsonify, request
@@ -9,9 +10,6 @@ from flask_swagger_ui import get_swaggerui_blueprint
 from flow_processor.config import (
     API_PORT,
     API_TOKEN,
-    LOG_FILE_NAME,
-    LOG_FORMAT,
-    LOG_LEVEL,
     LOG_PATH,
     SWAGGER_JSON_PATH,
     SWAGGER_URL,
@@ -32,16 +30,12 @@ from flow_processor.utils import parse_time_param, to_iso
 app = Flask(__name__)
 CORS(app)
 
-# --- Logging setup: always log to file, only log to console in test mode ---
-log_file_path = os.path.join(LOG_PATH, LOG_FILE_NAME)
-file_handler = logging.FileHandler(log_file_path)
-file_handler.setFormatter(logging.Formatter(LOG_FORMAT))
-file_handler.setLevel(LOG_LEVEL)
-
-# Attach file handler to root logger and app.logger
-logging.getLogger().addHandler(file_handler)
-logging.getLogger().setLevel(LOG_LEVEL)
-app.logger.propagate = True
+# Load logging configuration
+with open("logging_config.json", mode="r") as f:
+    logging_config = json.load(f)
+    # define the log file path
+    logging_config["file"]["filename"] = os.path.join(LOG_PATH, logging_config["file"]["filename"])
+    logging.config.dictConfig(logging_config)
 
 # get the scheduler instance (singleton)
 scheduler_instance = SchedulerService.get_instance()
@@ -49,10 +43,6 @@ scheduler_instance = SchedulerService.get_instance()
 
 # --- Only for testing: add StreamHandler for console output ---
 def run_app():
-    stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(logging.Formatter(LOG_FORMAT))
-    stream_handler.setLevel(LOG_LEVEL)
-    logging.getLogger().addHandler(stream_handler)
     logging.info("Starting Flask app with embedded scheduler (test mode)")
     # launch the Flask app for testing
     app.run(port=API_PORT, use_reloader=False)
@@ -83,11 +73,12 @@ def validate_token():
     """Validate the API token."""
     # Skip token validation for Swagger UI and static files
     if request.path.startswith("/api/docs") or request.path.startswith("/static"):
-        return
+        return None
 
     token = request.headers.get("Authorization")
     if token != f"Bearer {API_TOKEN}":
         return jsonify({"error": "Unauthorized"}), 401
+    return None
 
 
 # Grouped under /api/v1/schedules

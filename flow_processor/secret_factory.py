@@ -1,5 +1,3 @@
-import logging
-
 from .secrets.api_key_secret import ApiKeySecret
 from .secrets.credential_secret import CredentialSecret
 from .secrets.hashicorp_vault_secret import HashicorpVaultSecret
