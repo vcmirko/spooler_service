@@ -1,5 +1,4 @@
 import logging
-import os
 import threading
 import time
 import uuid
@@ -7,7 +6,6 @@ from datetime import datetime
 from threading import Thread
 
 import schedule
-import yaml
 from croniter import croniter
 
 from flow_processor.config import FLOW_TIMEOUT_SECONDS, TZ
@@ -15,7 +13,6 @@ from flow_processor.exceptions import (
     FlowAlreadyAddedException,
     FlowAlreadyRunningException,
     FlowNotFoundException,
-    FlowParsingException,
     NoScheduleException,
 )
 from flow_processor.flow import Flow

@@ -1,13 +1,15 @@
-from flow_processor import DebugStep
-from flow_processor import ExitStep  # exits the flow with a message
-from flow_processor import FileStep
-from flow_processor import FlowLoopStep
-from flow_processor import FlowStep
-from flow_processor import JinjaStep
-from flow_processor import JiraNamesMergeStep
-from flow_processor import JqStep
-from flow_processor import RestStep
-from flow_processor import SleepStep
+from steps import (
+    DebugStep,
+    ExitStep,
+    FileStep,
+    FlowLoopStep,
+    FlowStep,
+    JinjaStep,
+    JiraNamesMergeStep,
+    JqStep,
+    RestStep,
+    SleepStep,
+)
 
 
 # Factory function
