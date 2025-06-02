@@ -1,5 +1,6 @@
-import os
 import json
+import os
+
 from .config import LOG_PATH, SCRIPT_PATH
 
 
@@ -7,7 +8,9 @@ def load_log_file_path() -> str:
     """Load the log file path from the logging configuration."""
     with open(f"{SCRIPT_PATH}/flow_processor/logging_config.json", "r") as f:
         logging_config = json.load(f)
-        return str(os.path.join(LOG_PATH, logging_config["handlers"]["file"]["filename"]))
+        return str(
+            os.path.join(LOG_PATH, logging_config["handlers"]["file"]["filename"])
+        )
 
 
 def get_logs(lines=100):

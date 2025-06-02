@@ -111,13 +111,19 @@ class Flow:
                     )
                     continue_step = False
                     logging.error(
-                        "%s Error in step %s: %s", self._representation, step["name"], str(e)
+                        "%s Error in step %s: %s",
+                        self._representation,
+                        step["name"],
+                        str(e),
                     )
                     # check if the step has ignore_errors, if so, we will ignore the error if the regex matches
                     for err_regex in step.get("ignore_errors", []):
                         if re.match(err_regex, error_one_line):
                             logging.warning(
-                                "%s Ignoring error in step %s: %s", self._representation, step['name'], str(e)
+                                "%s Ignoring error in step %s: %s",
+                                self._representation,
+                                step["name"],
+                                str(e),
                             )
                             error_obj["ignored"] = (
                                 f"Error ignored based on regex: {err_regex}"
@@ -142,7 +148,9 @@ class Flow:
                 # call the step factory to create the finally step object on failure
                 if finally_step:
                     logging.info(
-                        "%s Calling finally step %s", self._representation, self._finally_step
+                        "%s Calling finally step %s",
+                        self._representation,
+                        self._finally_step,
                     )
                     create_step(finally_step, self).process(
                         True
@@ -152,7 +160,10 @@ class Flow:
                     failed_message = f"Flow {self._name} failed, {str(e)}"
             except Exception as e:
                 logging.error(
-                    "%s Error in finally step %s: %s", self._representation, self._finally_step, str(e)
+                    "%s Error in finally step %s: %s",
+                    self._representation,
+                    self._finally_step,
+                    str(e),
                 )
                 failed = True
 

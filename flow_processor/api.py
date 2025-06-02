@@ -37,7 +37,9 @@ logger = logging.getLogger(__name__)
 with open(f"{SCRIPT_PATH}/flow_processor/logging_config.json", mode="r") as f:
     logging_config = json.load(f)
     # define the log file path
-    logging_config["handlers"]["file"]["filename"] = os.path.join(LOG_PATH, logging_config["handlers"]["file"]["filename"])
+    logging_config["handlers"]["file"]["filename"] = os.path.join(
+        LOG_PATH, logging_config["handlers"]["file"]["filename"]
+    )
     logging.config.dictConfig(logging_config)
 
 # get the scheduler instance (singleton)

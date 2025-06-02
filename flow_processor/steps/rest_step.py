@@ -4,9 +4,8 @@ import logging
 import requests
 import urllib3
 
-from flow_processor.utils import apply_jinja2
-
 from flow_processor.step import Step
+from flow_processor.utils import apply_jinja2
 
 
 class RestStepException(Exception):
