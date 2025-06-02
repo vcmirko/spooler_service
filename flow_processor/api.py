@@ -34,7 +34,7 @@ CORS(app)
 logger = logging.getLogger(__name__)
 
 # Load logging configuration
-with open(f"{SCRIPT_PATH}/flow_processor/logging_config.json", mode="r") as f:
+with open(f"{SCRIPT_PATH}/logging_config.json", mode="r") as f:
     logging_config = json.load(f)
     # define the log file path
     logging_config["handlers"]["file"]["filename"] = os.path.join(
