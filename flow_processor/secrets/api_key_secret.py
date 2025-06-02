@@ -1,5 +1,7 @@
-from ..secret import Secret
 from flow_processor.exceptions import BadSecretException
+
+from ..secret import Secret
+
 
 class ApiKeySecret(Secret):
     def __init__(self, secret_def):
@@ -9,8 +11,7 @@ class ApiKeySecret(Secret):
 
     def load(self):
         if not self._key or not self._value:
-            raise BadSecretException(f"API key secret '{self._name}' missing 'key' or 'value'")
-        return {
-            "key": self._key,
-            "value": self._value
-        }
+            raise BadSecretException(
+                f"API key secret '{self._name}' missing 'key' or 'value'"
+            )
+        return {"key": self._key, "value": self._value}

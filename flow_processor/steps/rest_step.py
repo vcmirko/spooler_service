@@ -1,23 +1,30 @@
 import base64
 import logging
-import requests
-from ..step import Step
-from flow_processor.utils import apply_jinja2
-from flow_processor.config import LOG_LEVEL
 
+import requests
 import urllib3
+
+from flow_processor.config import LOG_LEVEL
+from flow_processor.utils import apply_jinja2
+
+from ..step import Step
+
 
 class RestStepException(Exception):
     """Custom exception for REST step errors."""
+
     def __init__(self, message, status_code=None, response_content=None):
         super().__init__(message)
         self.status_code = status_code
         self.response_content = response_content
+
+
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-    
+
 class RestStep(Step):
     """Subclass for REST operations."""
+
     def __init__(self, step, flow):
         super().__init__(step, flow)
 
@@ -37,6 +44,7 @@ class RestStep(Step):
         # process the query parameters, add ? and & and uri encode the values, use python urllib.parse
         if self._query:
             from urllib.parse import urlencode
+
             self._uri += "?" + urlencode(self._query)
 
         # process body
@@ -45,7 +53,7 @@ class RestStep(Step):
             self._body = self._flow._data.get(self._data_key, {})
         elif self._rest.get("body", False):
             self._body = self._rest.get("body")
-        
+
         if self._authentication:
             self._headers.update(self._get_auth_headers())
 
@@ -72,23 +80,33 @@ class RestStep(Step):
         else:
             # if the response contained data, log it
             if response.content:
-                logging.error("%s REST request failed with status code %s: %r", self._representation, response.status_code, response.content)
+                logging.error(
+                    "%s REST request failed with status code %s: %r",
+                    self._representation,
+                    response.status_code,
+                    response.content,
+                )
                 try:
                     response_content = response.json()
                 except ValueError:
-                    response_content = response.content  # Fallback to raw content if not JSON
+                    response_content = (
+                        response.content
+                    )  # Fallback to raw content if not JSON
                 raise RestStepException(
                     message="REST request failed",
                     status_code=response.status_code,
-                    response_content=response_content
+                    response_content=response_content,
                 )
             else:
-                logging.error("%s REST request failed with status code %s", self._representation, response.status_code)
-                raise RestStepException(
-                    message="REST request failed",
-                    status_code=response.status_code
+                logging.error(
+                    "%s REST request failed with status code %s",
+                    self._representation,
+                    response.status_code,
                 )
-            
+                raise RestStepException(
+                    message="REST request failed", status_code=response.status_code
+                )
+
         self._data = response.json()
         return super().process()
 
@@ -110,14 +128,20 @@ class RestStep(Step):
                 username = secret.get("username")
                 password = secret.get("password")
                 if not username or not password:
-                    raise Exception(f"Secret '{secret_name}' missing 'username' or 'password' property")
-                basic_auth = base64.b64encode(f"{username}:{password}".encode()).decode()
+                    raise Exception(
+                        f"Secret '{secret_name}' missing 'username' or 'password' property"
+                    )
+                basic_auth = base64.b64encode(
+                    f"{username}:{password}".encode()
+                ).decode()
                 return {"Authorization": f"Basic {basic_auth}"}
             case "api_key":
                 api_key_value = secret.get("value")
                 api_key_name = secret.get("key")
                 if not api_key_value or not api_key_name:
-                    raise Exception(f"Secret '{secret_name}' missing API key 'key' or 'value' property")   
+                    raise Exception(
+                        f"Secret '{secret_name}' missing API key 'key' or 'value' property"
+                    )
                 return {api_key_name: api_key_value}
             case _:
                 raise Exception(f"Unsupported authentication type: {auth_type}")
@@ -128,12 +152,18 @@ class RestStep(Step):
             case "GET":
                 return requests.get(self._uri, headers=self._headers, verify=False)
             case "POST":
-                return requests.post(self._uri, headers=self._headers, json=self._body, verify=False)
+                return requests.post(
+                    self._uri, headers=self._headers, json=self._body, verify=False
+                )
             case "PUT":
-                return requests.put(self._uri, headers=self._headers, json=self._body, verify=False)
+                return requests.put(
+                    self._uri, headers=self._headers, json=self._body, verify=False
+                )
             case "DELETE":
                 return requests.delete(self._uri, headers=self._headers, verify=False)
             case "PATCH":
-                return requests.patch(self._uri, headers=self._headers, json=self._body, verify=False)
+                return requests.patch(
+                    self._uri, headers=self._headers, json=self._body, verify=False
+                )
             case _:
-                raise Exception(f"Unsupported HTTP method: {self._method}")        
+                raise Exception(f"Unsupported HTTP method: {self._method}")

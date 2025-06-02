@@ -1,5 +1,7 @@
-from ..secret import Secret
 from flow_processor.exceptions import BadSecretException
+
+from ..secret import Secret
+
 
 class TokenSecret(Secret):
     def __init__(self, secret_def):
@@ -9,6 +11,4 @@ class TokenSecret(Secret):
     def load(self):
         if not self._token:
             raise BadSecretException(f"Token secret '{self._name}' missing token")
-        return {
-            "token": self._token
-        }
+        return {"token": self._token}

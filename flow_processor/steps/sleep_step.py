@@ -1,9 +1,11 @@
 import logging
+
 from ..step import Step
 
 
 class SleepStep(Step):
     """Subclass for sleep operations."""
+
     def __init__(self, step, flow):
         super().__init__(step, flow)
         assert "sleep" in step, "sleep property is required"
@@ -17,10 +19,13 @@ class SleepStep(Step):
         # check if the step is enabled
         enabled = super().pre_process(ignore_when)
         if not enabled:
-            return 
+            return
 
-        logging.info("%s -> sleeping for %s seconds", self._representation, self._seconds)
+        logging.info(
+            "%s -> sleeping for %s seconds", self._representation, self._seconds
+        )
         import time
+
         time.sleep(self._seconds)
-        
-        return super().process()    
+
+        return super().process()

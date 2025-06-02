@@ -1,11 +1,13 @@
-from sqlalchemy import create_engine, Column, String, Text, JSON, Enum
+import enum
+import logging
+import time
+import uuid
+
+from sqlalchemy import JSON, Column, Enum, String, Text, create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.types import Float
-import logging
-import uuid
-import time
-import enum
+
 from flow_processor.config import DATABASE_URL
 from flow_processor.exceptions import FlowAlreadyRunningException
 
@@ -13,10 +15,12 @@ Base = declarative_base()
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(bind=engine)
 
+
 class JobState(enum.Enum):
     pending = "pending"
     running = "running"
     finished = "finished"
+
 
 class JobStatus(enum.Enum):
     unknown = "unknown"
@@ -24,6 +28,7 @@ class JobStatus(enum.Enum):
     failed = "failed"
     error = "error"
     exit = "exit"
+
 
 class Job(Base):
     __tablename__ = "jobs"
@@ -36,7 +41,9 @@ class Job(Base):
     start_time = Column(Float, default=time.time)
     end_time = Column(Float, nullable=True)
 
+
 Base.metadata.create_all(bind=engine)
+
 
 def create_job(meta=None):
     """Create a new job and return its ID."""
@@ -44,31 +51,36 @@ def create_job(meta=None):
     if flow_path:
         db = SessionLocal()
         from sqlalchemy import cast
-        running = db.query(Job).filter(
-            Job.state != JobState.finished,
-            Job.meta.like(f'%\"flow_path\": \"{flow_path}\"%')
-        ).first()
+
+        running = (
+            db.query(Job)
+            .filter(
+                Job.state != JobState.finished,
+                Job.meta.like(f'%"flow_path": "{flow_path}"%'),
+            )
+            .first()
+        )
         if running:
             db.close()
-            raise FlowAlreadyRunningException(f"A job for flow '{flow_path}' is already running.")
-        db.close()    
+            raise FlowAlreadyRunningException(
+                f"A job for flow '{flow_path}' is already running."
+            )
+        db.close()
     db = SessionLocal()
     job_id = str(uuid.uuid4())
-    job = Job(
-        id=job_id,
-        meta=meta or {},
-        start_time=time.time()
-    )
+    job = Job(id=job_id, meta=meta or {}, start_time=time.time())
     db.add(job)
     db.commit()
     db.close()
     return job_id
+
 
 def get_job(job_id):
     db = SessionLocal()
     job = db.query(Job).filter(Job.id == job_id).first()
     db.close()
     return job
+
 
 def update_job(job_id, **kwargs):
     db = SessionLocal()
@@ -82,7 +94,17 @@ def update_job(job_id, **kwargs):
     db.close()
     return job
 
-def list_jobs(limit=50, offset=0, state=None, status=None, start_time_from=None, start_time_to=None, end_time_from=None, end_time_to=None):
+
+def list_jobs(
+    limit=50,
+    offset=0,
+    state=None,
+    status=None,
+    start_time_from=None,
+    start_time_to=None,
+    end_time_from=None,
+    end_time_to=None,
+):
     db = SessionLocal()
     query = db.query(Job)
     if state:
@@ -101,6 +123,7 @@ def list_jobs(limit=50, offset=0, state=None, status=None, start_time_from=None,
     db.close()
     return jobs
 
+
 def abandon_all_running_jobs():
     """Mark all running jobs as abandoned (state=finished, status=unknown)."""
     logging.info("Abandoning all running jobs due to service restart.")
@@ -114,6 +137,7 @@ def abandon_all_running_jobs():
         job.end_time = now
     db.commit()
     db.close()
+
 
 def delete_jobs_filtered(days=None, status=None, state=None):
     db = SessionLocal()
@@ -129,6 +153,7 @@ def delete_jobs_filtered(days=None, status=None, state=None):
     db.commit()
     db.close()
     return deleted
+
 
 def delete_job_by_id(job_id):
     db = SessionLocal()

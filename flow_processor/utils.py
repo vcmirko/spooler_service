@@ -1,10 +1,12 @@
+import logging
 import os
+from datetime import datetime
+
 import jinja2
 import jq
-import logging
-from datetime import datetime
 from dateutil import parser as date_parser
-from flow_processor.config import TZ, TEMPLATES_PATH
+
+from flow_processor.config import TEMPLATES_PATH, TZ
 
 
 def apply_jinja2(template, data):
@@ -14,7 +16,8 @@ def apply_jinja2(template, data):
         return result
     except jinja2.exceptions.TemplateError as e:
         raise Exception(f"Error processing template: {e}")
-    
+
+
 def apply_jq_filter(data, filter):
     """Apply jq filter to the data."""
     try:
@@ -26,7 +29,8 @@ def apply_jq_filter(data, filter):
         return result
     except Exception as e:
         raise Exception(f"Error applying jq filter: {e}")
-    
+
+
 def apply_jinja2_from_file(path, data):
     """Apply Jinja2 templating from a file."""
     logging.debug("Applying jinja2 from file: %s", path)
@@ -41,21 +45,26 @@ def apply_jinja2_from_file(path, data):
         raise Exception(f"Error processing template: {e}")
     except FileNotFoundError as e:
         raise Exception(f"File not found: {e}")
-    
+
+
 def string_to_key(str):
     """Convert a string to a key."""
     new_key = str.replace(".", "_").replace("-", "_").replace(" ", "_").lower()
     return new_key
 
+
 def make_timestamp():
     """Generate a unique timestamp."""
     from datetime import datetime
+
     return datetime.now().strftime("%Y%m%d%H%M%S")
+
 
 def to_iso(dt):
     if not dt:
         return None
     return datetime.fromtimestamp(dt, TZ).isoformat()
+
 
 def parse_time_param(param):
     if not param:

@@ -1,9 +1,12 @@
 import logging
-from ..step import Step
+
 from ..exceptions import FlowExitException
+from ..step import Step
+
 
 class ExitStep(Step):
     """Subclass for exit operations."""
+
     def __init__(self, step, flow):
         super().__init__(step, flow)
         assert "exit" in step, "exit property is required"
@@ -17,11 +20,11 @@ class ExitStep(Step):
         # check if the step is enabled
         enabled = super().pre_process(ignore_when)
         if not enabled:
-            return 
+            return
 
-        logging.info("%s -> exiting with message: %s", self._representation, self._message)
-        self._data = {
-            "message": self._message
-        }
-        
+        logging.info(
+            "%s -> exiting with message: %s", self._representation, self._message
+        )
+        self._data = {"message": self._message}
+
         raise FlowExitException("Flow exited with message: {}".format(self._message))

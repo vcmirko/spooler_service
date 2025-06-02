@@ -1,8 +1,10 @@
-from .secrets.credential_secret import CredentialSecret
-from .secrets.token_secret import TokenSecret
-from .secrets.hashicorp_vault_secret import HashicorpVaultSecret
-from .secrets.api_key_secret import ApiKeySecret
 import logging
+
+from .secrets.api_key_secret import ApiKeySecret
+from .secrets.credential_secret import CredentialSecret
+from .secrets.hashicorp_vault_secret import HashicorpVaultSecret
+from .secrets.token_secret import TokenSecret
+
 
 class SecretFactory:
     @staticmethod

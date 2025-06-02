@@ -1,8 +1,12 @@
-from ..secret import Secret
-from flow_processor.exceptions import BadSecretException
-from flow_processor.config import HASHICORP_VAULT_TOKEN, HASHICORP_VAULT_CACHE_TTL
-import requests
 import time
+
+import requests
+
+from flow_processor.config import HASHICORP_VAULT_CACHE_TTL, HASHICORP_VAULT_TOKEN
+from flow_processor.exceptions import BadSecretException
+
+from ..secret import Secret
+
 
 class HashicorpVaultSecret(Secret):
     _cache = {}
@@ -25,27 +29,36 @@ class HashicorpVaultSecret(Secret):
             return self._cache[cache_key]
 
         if not self._uri:
-            raise BadSecretException(f"Hashicorp Vault secret '{self._name}' missing uri")
-        
+            raise BadSecretException(
+                f"Hashicorp Vault secret '{self._name}' missing uri"
+            )
+
         token = HASHICORP_VAULT_TOKEN
         if not token:
-            raise BadSecretException(f"Hashicorp Vault secret '{self._name}' missing token, please set HASHICORP_VAULT_TOKEN in the environment")
+            raise BadSecretException(
+                f"Hashicorp Vault secret '{self._name}' missing token, please set HASHICORP_VAULT_TOKEN in the environment"
+            )
 
         headers = {"X-Vault-Token": token}
         response = requests.get(self._uri, headers=headers, verify=False)
         if not response.ok:
-            raise BadSecretException(f"Failed to fetch secret '{self._name}' from Hashicorp Vault: {response.text}")
+            raise BadSecretException(
+                f"Failed to fetch secret '{self._name}' from Hashicorp Vault: {response.text}"
+            )
         data = response.json()
         data = data.get("data", None)
         assert data is not None, f"Hashicorp Vault secret '{self._name}' has no data"
         data = data.get("data")
-        assert data is not None, f"Hashicorp Vault secret '{self._name}' data has no data key"
+        assert data is not None, (
+            f"Hashicorp Vault secret '{self._name}' data has no data key"
+        )
 
         if self._jq_expression:
             from flow_processor.utils import apply_jq_filter
+
             data = apply_jq_filter(data, self._jq_expression)
 
-        # Cache result 
+        # Cache result
         self._cache[cache_key] = data
         self._cache_expiry[cache_key] = now + HASHICORP_VAULT_CACHE_TTL
 
