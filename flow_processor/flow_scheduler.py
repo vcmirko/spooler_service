@@ -62,7 +62,7 @@ class FlowScheduler:
         logging.info("Loading flow configuration from %s", flow_path)
 
         # Check if the flow file exists and parses well
-        Flow.validatePath(flow_path)
+        Flow.validate_path(flow_path)
 
         # Check if the flow is not already added
         if any(f["path"] == flow_path for f in self.flows.values()):

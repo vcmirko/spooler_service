@@ -160,7 +160,7 @@ def launch_job():
         return jsonify({"error": "flow path is required"}), 400
 
     try:
-        Flow.validatePath(flow_path)
+        Flow.validate_path(flow_path)
         job_id = FlowRunner.launch_async(
             flow_path, payload=payload, timeout=timeout, meta=meta
         )

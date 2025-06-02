@@ -21,7 +21,7 @@ class Flow:
     """
 
     @staticmethod
-    def validatePath(flow_path):
+    def validate_path(flow_path):
         """
         Validate the flow path to prevent directory traversal and ensure it is a YAML file.
         """
