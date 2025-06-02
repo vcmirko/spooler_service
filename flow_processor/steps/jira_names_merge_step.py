@@ -1,9 +1,13 @@
 import logging
-from ..step import Step
+
 from flow_processor.utils import string_to_key
+
+from ..step import Step
+
 
 class JiraNamesMergeStep(Step):
     """Subclass for file operations."""
+
     def __init__(self, step, flow):
         super().__init__(step, flow)
         assert "jira_names_merge" in step, "Jira names merge configuration is required"
@@ -17,20 +21,23 @@ class JiraNamesMergeStep(Step):
         # check if the step is enabled
         enabled = super().pre_process(ignore_when)
         if not enabled:
-            return 
+            return
 
-        logging.info("%s -> Transpose Jira customfields with names", self._representation)
+        logging.info(
+            "%s -> Transpose Jira customfields with names", self._representation
+        )
         data = self._flow._data.get(self._jira_names_merge.get("data_key"))
         issues = data.get(self._list_key, [])
         field_names = data.get("names", None)
         if field_names is None:
-            raise Exception(f"Field names not found in {self._list_key} list, add expand=names to the query")
-        
+            raise Exception(
+                f"Field names not found in {self._list_key} list, add expand=names to the query"
+            )
+
         # clone issues to self._data by value, not reference
         self._data = [issue.copy() for issue in issues]
 
-
-        # for each issue, go into the issue, field the fields, each key that starts with customfield_ 
+        # for each issue, go into the issue, field the fields, each key that starts with customfield_
         # => add the field name to the issue, copy the value to the field name and remove the custom field
         for issue in self._data:
             for key, value in list(issue["fields"].items()):
@@ -43,7 +50,7 @@ class JiraNamesMergeStep(Step):
                     field_name = field_names.get(key)
                     if field_name is None:
                         continue
-                    
+
                     if field_name:
                         issue["fields"][string_to_key(field_name)] = value
                         del issue["fields"][key]

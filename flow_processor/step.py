@@ -1,10 +1,13 @@
-from flow_processor.utils import apply_jinja2
-from flow_processor.secret_factory import SecretFactory
-from flow_processor.exceptions import SecretNotFoundException
 import logging
 
-class Step():
+from flow_processor.exceptions import SecretNotFoundException
+from flow_processor.secret_factory import SecretFactory
+from flow_processor.utils import apply_jinja2
+
+
+class Step:
     """Base class for all steps in the flow."""
+
     def __init__(self, step, flow):
         self._name = step.get("name")
         self._type = step.get("type")
@@ -14,7 +17,9 @@ class Step():
         self._step = step  # Store the original step dictionary for internal use
         self._jq_expression = step.get("jq_expression", None)
         self._when = step.get("when", [])  # List of Jinja2 expressions
-        self._representation = f"{self._flow._representation}[{self._name} // {self._type}]"
+        self._representation = (
+            f"{self._flow._representation}[{self._name} // {self._type}]"
+        )
 
     def __repr__(self):
         return f"{self._representation}"
@@ -32,22 +37,24 @@ class Step():
             logging.debug("Evaluating condition: {{ %s }}", condition)
             result = apply_jinja2(f"{{{{ {condition} }}}}", self._flow._data)
             logging.debug("Condition result: %s", result)
-            if not result.lower() in ["true", "1", "yes"]:  # Treat only "true", "1", or "yes" as True
+            if not result.lower() in [
+                "true",
+                "1",
+                "yes",
+            ]:  # Treat only "true", "1", or "yes" as True
                 return False
         return True
-    
+
     def pre_process(self, ignore_when=False):
         """Pre-process the step."""
         # Check 'when' conditions
-        if(ignore_when):
+        if ignore_when:
             return True
         return self._evaluate_when()
 
     def process(self):
         """Process the step."""
         from flow_processor.utils import apply_jq_filter
-
-
 
         # THIS IS RAN AFTER THE SUBCLASS PROCESS METHOD
         # Here we just patch the data with the result key

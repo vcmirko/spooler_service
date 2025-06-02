@@ -1,9 +1,13 @@
 import logging
-from ..step import Step
+
 from flow_processor.utils import apply_jq_filter
+
+from ..step import Step
+
 
 class JqStep(Step):
     """Subclass for jq operations."""
+
     def __init__(self, step, flow):
         super().__init__(step, flow)
         assert "jq" in step, "Jq configuration is required"
@@ -20,8 +24,8 @@ class JqStep(Step):
         # check if the step is enabled
         enabled = super().pre_process(ignore_when)
         if not enabled:
-            return 
+            return
 
         logging.info("%s -> %s", self._representation, self._expression)
         self._data = apply_jq_filter(self._data, self._expression)
-        return super().process()    
+        return super().process()

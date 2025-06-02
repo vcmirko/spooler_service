@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+
 import pytz
 
 # --- Base Paths ---
@@ -19,11 +20,7 @@ TEMPLATES_PATH.mkdir(exist_ok=True)
 SECRETS_PATH = Path(os.getenv("SECRETS_PATH", DATA_PATH / "secrets.yml"))
 JOBS_DB_PATH = Path(os.getenv("JOBS_DB_PATH", DATA_PATH / "jobs.sqlite"))
 CONFIG_FILE = Path(os.getenv("CONFIG_FILE", DATA_PATH / "config.yml"))
-
-# --- Logging ---
-LOG_FILE_NAME = os.getenv("LOG_FILE_NAME", "spooler_service.log")
-LOG_FORMAT = "%(asctime)s - %(levelname)s - %(message)s"
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+SCRIPT_PATH = os.path.dirname(__file__)
 
 # --- Database ---
 DATABASE_URL = f"sqlite:///{JOBS_DB_PATH}"
@@ -42,7 +39,9 @@ SWAGGER_JSON_PATH = os.path.join(BASE_PATH, "static/swagger.json")
 
 # --- Vault ---
 HASHICORP_VAULT_TOKEN = os.getenv("HASHICORP_VAULT_TOKEN", None)
-HASHICORP_VAULT_CACHE_TTL = int(os.getenv("HASHICORP_VAULT_CACHE_TTL", 60))  # Default: 1 minute
+HASHICORP_VAULT_CACHE_TTL = int(
+    os.getenv("HASHICORP_VAULT_CACHE_TTL", 60)
+)  # Default: 1 minute
 
 # --- Flow ---
 FLOW_TIMEOUT_SECONDS = int(os.getenv("FLOW_TIMEOUT", 600))  # Default: 10 minutes

@@ -1,7 +1,10 @@
 import logging
 import os
-from ..step import Step
+
 from flow_processor.config import FLOWS_PATH
+
+from ..step import Step
+
 
 class FlowStep(Step):
     """
@@ -36,9 +39,10 @@ class FlowStep(Step):
         # check if the step is enabled
         enabled = super().pre_process(ignore_when)
         if not enabled:
-            return 
+            return
 
-        from flow_processor import Flow # recursive import
+        from flow_processor import Flow  # recursive import
+
         logging.info("%s -> %s", self._representation, self._path)
-        self._data = Flow(self._path,self._payload).process()
+        self._data = Flow(self._path, self._payload).process()
         return super().process()

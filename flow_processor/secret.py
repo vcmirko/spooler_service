@@ -5,4 +5,3 @@ class Secret:
 
     def __init__(self, secret_def):
         self._name = secret_def.get("name")
-

@@ -1,11 +1,15 @@
+import asyncio
 import logging
 import os
-from ..step import Step
+
 from flow_processor.config import FLOWS_PATH
-import asyncio
+
+from ..step import Step
+
 
 class FlowLoopStep(Step):
     """Subclass for flow loop operations."""
+
     def __init__(self, step, flow):
         super().__init__(step, flow)
         assert "flow_loop" in step, "Flow loop configuration is required"
@@ -22,15 +26,16 @@ class FlowLoopStep(Step):
         # check if the step is enabled
         enabled = super().pre_process(ignore_when)
         if not enabled:
-            return 
+            return
 
         logging.info("%s -> %s", self._representation, self._path)
-        from flow_processor.flow import Flow # recursive import
+        from flow_processor.flow import Flow  # recursive import
 
         # Load the flow and process it
         self._data = []
+
         async def process_item(index, item):
-            return await asyncio.to_thread(Flow(self._path,item,index+1).process)
+            return await asyncio.to_thread(Flow(self._path, item, index + 1).process)
 
         async def process_all():
             tasks = [process_item(index, item) for index, item in enumerate(self._list)]

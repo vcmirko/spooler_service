@@ -1,19 +1,26 @@
-import yaml
 import json
 import logging
 import os
-from ..step import Step
-from flow_processor.utils import apply_jinja2
+
+import yaml
+
 from flow_processor.config import DATA_PATH
+from flow_processor.utils import apply_jinja2
+
+from ..step import Step
+
 
 class FileStep(Step):
     """Subclass for file operations."""
+
     def __init__(self, step, flow):
         super().__init__(step, flow)
         assert "file" in step, "File configuration is required"
         self._file = step.get("file")
         assert "path" in self._file, "File path is required"
-        self._file_path = os.path.join(DATA_PATH, apply_jinja2(self._file.get("path"), self._flow._data))
+        self._file_path = os.path.join(
+            DATA_PATH, apply_jinja2(self._file.get("path"), self._flow._data)
+        )
         self._file_type = self._file.get("type", "yaml")
         self._file_mode = self._file.get("mode", "read")
 
@@ -23,9 +30,11 @@ class FileStep(Step):
         # check if the step is enabled
         enabled = super().pre_process(ignore_when)
         if not enabled:
-            return 
+            return
 
-        logging.info("%s -> %s %s", self._representation, self._file_mode, self._file_path)
+        logging.info(
+            "%s -> %s %s", self._representation, self._file_mode, self._file_path
+        )
 
         match self._file_mode:
             case "read":
@@ -45,7 +54,6 @@ class FileStep(Step):
 
         return super().process()
 
-
     def _parse_data(self, data, file_type):
         """Parse data based on the file type."""
         match file_type:
@@ -60,8 +68,12 @@ class FileStep(Step):
         """Write data to a file based on the file type."""
         match file_type:
             case "yaml":
-                yaml.dump(self._get_data_by_key(self._file["data_key"]), file, default_flow_style=False)
+                yaml.dump(
+                    self._get_data_by_key(self._file["data_key"]),
+                    file,
+                    default_flow_style=False,
+                )
             case "json":
                 json.dump(self._get_data_by_key(self._file["data_key"]), file)
             case _:
-                raise Exception(f"Unsupported file type: {file_type}")        
+                raise Exception(f"Unsupported file type: {file_type}")

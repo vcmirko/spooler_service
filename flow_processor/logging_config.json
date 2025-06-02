@@ -1,0 +1,182 @@
+{
+  "version": 1,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "standard": {
+      "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    },
+    "pretty": {
+      "format": "%(asctime)s [%(levelname)s] %(name)s - %(message)s",
+      "datefmt": "%Y-%m-%d %H:%M:%S"
+    }
+  },
+  "handlers": {
+    "console": {
+      "class": "logging.StreamHandler",
+      "formatter": "pretty",
+      "level": "INFO"
+    },
+    "file": {
+      "class": "logging.FileHandler",
+      "filename": "spooler_service.log",
+      "formatter": "standard",
+      "level": "INFO"
+    },
+    "null": {
+      "class": "logging.NullHandler"
+    }
+  },
+  "loggers": {
+    "": {
+      "handlers": [
+        "console",
+        "file"
+      ],
+      "level": "INFO"
+    },
+    "flow_processor.api": {
+      "handlers": [
+        "console",
+        "file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "flow_processor.flow": {
+      "handlers": [
+        "console",
+        "file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "flow_processor.flow_runner": {
+      "handlers": [
+        "console",
+        "file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "flow_processor.flow_scheduler": {
+      "handlers": [
+        "console",
+        "file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "flow_processor.job_store": {
+      "handlers": [
+        "console",
+        "file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "flow_processor.scheduler_service": {
+      "handlers": [
+        "console",
+        "file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "flow_processor.step": {
+      "handlers": [
+        "console",
+        "file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "flow_processor.utils": {
+      "handlers": [
+        "console",
+        "file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "flow_processor.steps.debug_step": {
+      "handlers": [
+        "console",
+        "file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "flow_processor.steps.exit_step": {
+      "handlers": [
+        "console",
+        "file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "flow_processor.steps.file_step": {
+      "handlers": [
+        "console",
+        "file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "flow_processor.steps.flow_loop_step": {
+      "handlers": [
+        "console",
+        "file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "flow_processor.steps.flow_step": {
+      "handlers": [
+        "console",
+        "file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "flow_processor.steps.jinja_step": {
+      "handlers": [
+        "console",
+        "file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "flow_processor.steps.jira_names_merge_step": {
+      "handlers": [
+        "console",
+        "file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "flow_processor.steps.jq_step": {
+      "handlers": [
+        "console",
+        "file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "flow_processor.steps.rest_step": {
+      "handlers": [
+        "console",
+        "file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    },
+    "flow_processor.steps.sleep_step": {
+      "handlers": [
+        "console",
+        "file"
+      ],
+      "level": "INFO",
+      "propagate": false
+    }
+  }
+}

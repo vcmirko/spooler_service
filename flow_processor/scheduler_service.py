@@ -1,13 +1,17 @@
-from threading import Thread, Event
-from flow_processor.flow_scheduler import FlowScheduler
-import yaml, logging, time
-from flow_processor.config import CONFIG_FILE
-from flow_processor.job_store import abandon_all_running_jobs
+import logging
+import time
+from threading import Event, Thread
 
+import yaml
+
+from flow_processor.config import CONFIG_FILE
+from flow_processor.flow_scheduler import FlowScheduler
+from flow_processor.job_store import abandon_all_running_jobs
 
 # we make the scheduler a singleton
 # so you can initialize it once and use it in the whole app
 # any second call to get_instance will return the same instance
+
 
 class SchedulerService:
     _instance = None
