@@ -51,7 +51,6 @@ class Flow:
         self._name = flow.get("name")
         self._path = path
         self._steps = flow.get("steps", [])
-        self._finally_step = flow.get("finally_step", None)
         self._data = {}
         self._data["__errors__"] = []  # a list of errors that occurred during the flow
         self._data["__input__"] = (
@@ -76,13 +75,13 @@ class Flow:
         if loop_index:
             self._representation += f"[{loop_index}]"
 
-        step_dict = {step["name"]: idx for idx, step in enumerate(self._steps)}
+        self._step_dict = {step["name"]: idx for idx, step in enumerate(self._steps)}
 
     def __repr__(self):
         repr = f"[{self._name}][{self._data.get('__loop_index__')}]"
         return repr
 
-    def process(self):
+    def process(self,stop_event=None):
         """Process the flow."""
 
         failed = False
@@ -98,7 +97,7 @@ class Flow:
             current_idx = 0
 
             # as long as we have steps to process
-            while current_idx < len(self._steps):
+            while current_idx < len(self._steps) and not stop_event.is_set():
 
                 # get the current step
                 step = self._steps[current_idx]
@@ -169,23 +168,30 @@ class Flow:
                 # Check for the next step based on the result of the current step
                 if isinstance(result, dict) and "goto" in result:
                     goto_name = result["goto"]
-                    if goto_name == "__exit__":
-                        # special case to exit the flow, we return the data and the exit message
-                        logging.info("%s Exiting flow %s", self._representation, self._name)
-                        # we return the data and the exit message
-                        return self._data, {"type": "exit", "message": "Flow exited."}
-                    if goto_name == "__end__":
-                        # special case to end the flow, we exit the loop
-                        logging.info("%s Ending flow %s", self._representation, self._name)
-                        break
-                    if goto_name not in self._step_dict:
-                        # bad goto step, we raise an exception
-                        raise Exception(f"Goto step '{goto_name}' not found in flow.")
-                    
-                    logging.info("%s Goto step %s", self._representation, goto_name)
-                    current_idx = self._step_dict[goto_name]
+                    match goto_name:
+                        case "__exit":
+                            logging.info("%s Exiting flow %s", self._representation, self._name)
+                            # we return the data and the exit message
+                            return self._data, {"type": "exit", "message": "Flow exited."}
+                        case "__end__":
+                            # special case to end the flow, we exit the loop
+                            logging.info("%s Ending flow %s", self._representation, self._name)
+                            current_idx = len(self._steps)
+                        case "__start__":
+                            # special case to end the flow, we exit the loop
+                            logging.info("%s Goto start of flow %s", self._representation, self._name)
+                            # goto_name = self._steps[0].name 
+                            current_idx = 0  
+                        case _: 
+                            if goto_name not in self._step_dict:
+                                # bad goto step, we raise an exception
+                                raise Exception(f"Goto step '{goto_name}' not found in flow.")
+                            
+                            logging.info("%s Goto step %s", self._representation, goto_name)
+                            current_idx = self._step_dict[goto_name]
                 else:
                     # no goto, just take the next step
+                    logging.debug("%s next step of flow %s", self._representation, self._name)
                     current_idx += 1
 
 
@@ -193,31 +199,6 @@ class Flow:
             # we silence the error here, the flow failed, the error will be logged
             logging.error("%s Error in flow: %s", self._representation, str(e))
             failed = True
-            # try:
-            #     finally_step = next(
-            #         (s for s in self._steps if s["name"] == self._finally_step), None
-            #     )
-            #     # call the step factory to create the finally step object on failure
-            #     if finally_step:
-            #         logging.info(
-            #             "%s Calling finally step %s",
-            #             self._representation,
-            #             self._finally_step,
-            #         )
-            #         create_step(finally_step, self).process(
-            #             True
-            #         )  # run with ignore_when=True, finally always runs
-            #     else:
-            #         failed = True
-            #         failed_message = f"Flow {self._name} failed, {str(e)}"
-            # except Exception as e:
-            #     logging.error(
-            #         "%s Error in finally step %s: %s",
-            #         self._representation,
-            #         self._finally_step,
-            #         str(e),
-            #     )
-            #     failed = True
 
         finally:
             logging.debug("%s Flow %s finished.", self._representation, self._name)
