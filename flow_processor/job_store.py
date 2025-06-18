@@ -128,7 +128,7 @@ def abandon_all_running_jobs():
     """Mark all running jobs as abandoned (state=finished, status=unknown)."""
     logging.info("Abandoning all running jobs due to service restart.")
     db = SessionLocal()
-    jobs = db.query(Job).filter(Job.state == JobState.running).all()
+    jobs = db.query(Job).filter(Job.state != JobState.finished ).all()
     now = time.time()
     for job in jobs:
         job.state = JobState.finished
