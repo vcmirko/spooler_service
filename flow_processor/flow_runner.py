@@ -1,11 +1,12 @@
 import concurrent.futures
+import threading
 import logging
 import time
 
 from flow_processor.flow import Flow
 from flow_processor.utils import make_json_safe
 from flow_processor.job_store import JobState, JobStatus, create_job, update_job
-from flow_processor.config import FLOW_MAX_WORKERS
+from flow_processor.config import FLOW_MAX_WORKERS, FLOW_TIMEOUT_SECONDS
 import json
 
 # Shared executor for all jobs (adjust max_workers as needed)
@@ -14,7 +15,12 @@ executor = concurrent.futures.ThreadPoolExecutor(max_workers=FLOW_MAX_WORKERS)
 
 class FlowRunner:
     @staticmethod
-    def launch_async(flow_path, payload=None, timeout=None, meta=None):
+    def launch_async(flow_path, payload=None, timeout=FLOW_TIMEOUT_SECONDS, meta=None):
+
+        logging.info("Launching flow '%s' with timeout '%s' seconds", flow_path, timeout)
+
+        stop_event = threading.Event()
+
         job_id = create_job(
             meta=meta
             or {"flow_path": flow_path, "payload": payload, "timeout": timeout}
@@ -30,7 +36,7 @@ class FlowRunner:
             try:
                 result, status_result = Flow(
                     path=flow_path, payload=payload or {}, job_id=job_id
-                ).process()
+                ).process(stop_event=stop_event)
                 status_type = status_result.get("type", "success")
                 status_message = status_result.get(
                     "message", "Flow completed successfully."
@@ -96,7 +102,10 @@ class FlowRunner:
             # This will raise concurrent.futures.TimeoutError if the job takes too long
             future.result(timeout=timeout)
         except concurrent.futures.TimeoutError:
-            logging.error(f"Flow {flow_path} timed out after {timeout} seconds")
+            logging.error(f"Flow {flow_path} not responding after {timeout} seconds, sending stop event")
+            stop_event.set()
+            while not future.done():
+                time.sleep(0.1)
             update_job(
                 job_id,
                 state=JobState.finished,
@@ -104,4 +113,6 @@ class FlowRunner:
                 errors=f"Flow timed out after {timeout} seconds",
                 end_time=time.time(),
             )
+            logging.error(f"Flow {flow_path} timed out after {timeout} seconds, job {job_id} marked as failed")
+
         return job_id
