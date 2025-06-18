@@ -9,6 +9,9 @@ from .steps import (
     JqStep,
     RestStep,
     SleepStep,
+    SwitchStep,
+    GotoStep,
+    SetFactStep,
 )
 
 
@@ -31,11 +34,17 @@ def create_step(step, flow):
             return FlowStep(step, flow)
         case "jira_names_merge":
             return JiraNamesMergeStep(step, flow)
+        case "switch":
+            return SwitchStep(step, flow)
         case "debug":
             return DebugStep(step, flow)
         case "sleep":
             return SleepStep(step, flow)
         case "exit":
             return ExitStep(step, flow)
+        case "goto":
+            return GotoStep(step, flow)
+        case "set_fact":
+            return SetFactStep(step, flow)
         case _:
             raise Exception(f"Unsupported step type: {step_type}")

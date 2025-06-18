@@ -8,6 +8,9 @@ from .jira_names_merge_step import JiraNamesMergeStep
 from .jq_step import JqStep
 from .rest_step import RestStep
 from .sleep_step import SleepStep
+from .switch_step import SwitchStep
+from .goto_step import GotoStep
+from .set_fact_step import SetFactStep
 
 __all__ = [
     "DebugStep",
@@ -20,4 +23,7 @@ __all__ = [
     "JqStep",
     "RestStep",
     "SleepStep",
+    "SwitchStep",
+    "GotoStep",
+    "SetFactStep",
 ]
