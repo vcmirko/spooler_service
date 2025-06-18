@@ -50,7 +50,7 @@ scheduler_instance = SchedulerService.get_instance()
 def run_app():
     logging.info("Starting Flask app with embedded scheduler (test mode)")
     # launch the Flask app for testing
-    app.run(port=API_PORT, use_reloader=False)
+    app.run(host="0.0.0.0", port=API_PORT, use_reloader=False, debug=True)
 
 
 @app.route("/static/swagger.json", methods=["GET"])
