@@ -4,6 +4,7 @@ from datetime import datetime
 
 import jinja2
 import jq
+import json
 from dateutil import parser as date_parser
 
 from flow_processor.config import TEMPLATES_PATH, TZ
@@ -16,6 +17,19 @@ def apply_jinja2(template, data):
         return result
     except jinja2.exceptions.TemplateError as e:
         raise Exception(f"Error processing template: {e}")
+
+
+def make_json_safe(obj):
+    """Recursively make an object JSON serializable."""
+    if isinstance(obj, dict):
+        return {k: make_json_safe(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [make_json_safe(v) for v in obj]
+    try:
+        json.dumps(obj)
+        return obj
+    except (TypeError, OverflowError):
+        return str(obj)  # fallback: string representation
 
 
 def apply_jq_filter(data, filter):
