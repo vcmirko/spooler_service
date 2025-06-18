@@ -203,7 +203,7 @@ A **flow** is a YAML file with a list of steps that can be executed in order. Ea
 |------------------|-------------------------------------------------------------------------------------------------------------|
 | **name**         | The name of the flow.                                                                                       |
 | **steps**        | A list of steps to execute, in order.                                                                       |
-| **finally_step** | (Optional) A step that always runs at the end of the flow, even if the flow fails.                          |
+
 
 Example:
 ```yaml
@@ -272,6 +272,8 @@ steps:
 | **DebugStep**         | Logs data for debugging                                                                      |
 | **SleepStep**         | Pauses execution for a specified number of seconds                                           |
 | **ExitStep**          | Prematurely exits the flow with a custom message and sets job status to `exit`               |
+| **SwitchStep**        | A conditional step that allows to run a specific step based on a condition (regex rules) |
+| **GotoStep**          | A step that allows to jump to a specific step in the flow, useful for loops or conditional execution |
 
 Common properties for all steps:
 
@@ -282,7 +284,8 @@ Common properties for all steps:
 | **when**         | A condition (if/else) that determines whether the step should be executed                                      |
 | **result_key**   | The key used to store the result of the step in the **_data** property                                         |
 | **ignore_errors**| A list of regex patterns to match error strings that should be ignored, allowing the flow to continue on error |
-| **jq_expression**| A jq expression to transform the data after the step is executed
+| **jq_expression**| A jq expression to transform the data after the step is executed                                               |
+| **on_error_goto** | A step name to jump to if an error occurs in this step, allowing for custom error handling                    |
 
 **NOTE:** Each step will have its own specific property, matching the step type (e.g., `rest`, `file`, etc.).  Even if a step has just one property, we still wrap it for a consistent interface.
 
@@ -522,6 +525,88 @@ Example of a file step that reads a JSON file and re-writes the result to a YAML
 ```
 
 In the example above, you see the use of `__timestamp__`, which is a special variable available in all steps.
+
+### SetFact Step
+The `set_fact` step type allows you to set a variable in the flow's data-stack (`_data` dictionary)
+
+| Property   | Description                                                                                  | Notes                                   | Default |
+|------------|----------------------------------------------------------------------------------------------|-----------------------------------------|---------|
+| **value** | The value to set in the data-stack                                                           | Allows jinja2 templating                |         |
+
+Example of a set_fact step that sets a variable in the flow's data-stack:
+```yaml
+- name: set ticket count
+  type: set_fact
+  set_fact:
+    value: "{{ tickets | length }}"
+```
+
+### Goto Step
+The `goto` step type allows you to jump to a specific step in the flow.
+| Property   | Description                                                                                  | Notes                                   | Default |
+|------------|----------------------------------------------------------------------------------------------|-----------------------------------------|---------|
+| **step_name** | The name of the step to jump to in the flow                                                  | Allows jinja processing   |         |
+
+**Note:**
+There are three special step names reserved by the system:
+
+- `__start__`: The implicit first step of every flow. 
+- `__end__`: End of the flow. It will end the flow with status `success`.  
+- `__exit__`: Exit the flow early. It will end the flow with status `exit`.
+
+These names are reserved and should not be used as custom step names in your flows.
+
+Example of a goto step that jumps to the end of the flow:
+```yaml
+- name: jump to end
+  type: goto
+  goto:
+    step_name: __end__ # jump to the end of the flow
+```
+
+Example of a goto step that jumps to a specific step in the flow, with jinja templating:
+```yaml
+- name: jump to process step
+  type: goto
+  goto:
+    step_name: "{{ 'process_ticket' if tickets | length > 0 else '__end__' }}"
+```
+
+
+### Switch Step
+The `switch` step type allows you to run a specific step based on a condition.
+
+| Property   | Description                                                                                  | Notes                                   | Default |
+|------------|----------------------------------------------------------------------------------------------|-----------------------------------------|---------|
+| **data_key** | The key used to grab the data from the datastack to evaluate the condition |                                         |         |
+| **cases** | A list of cases to evaluate, each with a `when` condition (regex) and a `step` to run if the condition is met |                                         |         |
+
+**Notes**:
+- Each case-step can be any other valid step... 
+- The case-step can not have a `when`, `on_error_goto`, `result_key` or `ignore_errors` property, as these are handled by the switch step itself.
+
+Example of a switch step that runs different steps based on the value of a variable:
+```yaml
+- name: switch on ticket status
+  type: switch
+  switch:
+    data_key: ticket_status
+    cases:
+      - when: "new"
+        step:
+          name: process new ticket
+          type: flow
+          flow:
+            ... 
+      - when: "finished"
+        step:
+          name: end the flow
+          type: goto
+          goto:
+            step_name: __end__ # jump to the end of the flow 
+  on_error_goto: "error_handler" # if any case fails, jump to the error handler step
+```
+
 
 ## Scheduler
 
