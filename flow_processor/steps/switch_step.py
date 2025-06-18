@@ -1,7 +1,7 @@
 import re
 import logging
 from ..step import Step
-from ..step_factory import create_step
+
 
 class SwitchStep(Step):
     def __init__(self, step, flow):
@@ -21,7 +21,7 @@ class SwitchStep(Step):
 
     def process(self, ignore_when=False):
         """Process the file step."""
-
+        from ..step_factory import create_step
         # check if the step is enabled
         enabled = super().pre_process(ignore_when)
         if not enabled:
@@ -32,13 +32,14 @@ class SwitchStep(Step):
         )
 
 
-        value = self._data.get(self._data_key)
+        value = self._flow._data.get(self._data_key)
         for rule in self._cases:
             assert "when" in rule, "Each case must have a 'when' condition"
             assert "step" in rule, "Each case must have a 'step' to execute"
+            logging.debug("Comparing '%s' -> '%s'",str(value),rule["when"]  )
             if re.match(rule["when"], str(value)):
                 step_conf = rule["step"]
-                step_obj = create_step(step_conf, self.flow)
+                step_obj = create_step(step_conf, self._flow)
                 return step_obj.process() # return, could be a goto step
 
 
