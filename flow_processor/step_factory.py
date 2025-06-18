@@ -42,6 +42,8 @@ def create_step(step, flow):
             return SleepStep(step, flow)
         case "exit":
             return ExitStep(step, flow)
+        case "switch":
+            return SwitchStep(step, flow)
         case "goto":
             return GotoStep(step, flow)
         case "set_fact":
