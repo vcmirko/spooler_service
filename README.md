@@ -41,8 +41,9 @@ All are optional and have sensible defaults.
 | **CONFIG_FILE**         | Full path to the configuration file                      | `<DATA_PATH>/config.yml`     |
 | **API_PORT**            | Port for the API server                                  | `5000`                       |
 | **API_TOKEN**           | Token for API authentication                             | `default_token`              |
-| **HASHICORP_VAULT_TOKEN** | Token for HashiCorp Vault                             |                              |
+| **HASHICORP_VAULT_TOKEN** | Token for HashiCorp Vault                              |                              |
 | **FLOW_TIMEOUT_SECONDS**| Default timeout for flows (seconds)                      | `600`                        |
+| **FLOW_MAX_WORKERS** | Maximum number of concurrent workers for flows              | `8`                         |
 | **TIMEZONE**            | Timezone for API input/output (e.g. `UTC`, `Europe/Berlin`) | `UTC`                   |
 | **JOBS_DB_PATH**        | Full path to the jobs database file (SQLite)             | `<DATA_PATH>/jobs.sqlite`    |
 | **HASHICORP_VAULT_CACHE_TTL** | TTL for HashiCorp Vault secrets cache (in seconds) | `60`                         |
