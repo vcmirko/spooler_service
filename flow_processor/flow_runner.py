@@ -105,7 +105,12 @@ class FlowRunner:
             logging.error(f"Flow {flow_path} not responding after {timeout} seconds, sending stop event")
             stop_event.set()
             while not future.done():
-                time.sleep(0.1)
+                logging.info(f"Waiting for flow {flow_path} to stop gracefully...")
+                time.sleep(5)
+                update_job(
+                    job_id,
+                    state=JobState.stopping
+                )                
             update_job(
                 job_id,
                 state=JobState.finished,
