@@ -194,6 +194,10 @@ class Flow:
                     logging.debug("%s next step of flow %s", self._representation, self._name)
                     current_idx += 1
 
+            # in case the flow was stopped but no error ever occurred.
+            if stop_event.is_set():
+                logging.info("%s Flow %s stopping on request.", self._representation, self._name)
+                return self._data, {"type": "failed", "message": "Flow stopped on request."}
 
         except Exception as e:
             # we silence the error here, the flow failed, the error will be logged
