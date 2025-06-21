@@ -20,6 +20,7 @@ class JobState(enum.Enum):
     pending = "pending"
     running = "running"
     finished = "finished"
+    stopping = "stopping"
 
 
 class JobStatus(enum.Enum):
