@@ -203,6 +203,10 @@ class Flow:
             # we silence the error here, the flow failed, the error will be logged
             logging.error("%s Error in flow: %s", self._representation, str(e))
             failed = True
+        except BaseException as be:
+            # we catch BaseException to ensure we log it and can handle it gracefully
+            logging.error("%s BaseException in flow: %s", self._representation, str(be))
+            failed = True
 
         finally:
             logging.debug("%s Flow %s finished.", self._representation, self._name)

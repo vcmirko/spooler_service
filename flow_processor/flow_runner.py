@@ -95,6 +95,17 @@ class FlowRunner:
                     errors=str(e),
                     end_time=time.time(),
                 )
+            
+            except BaseException as be:
+                logging.error("Critical error in flow %s: %s", flow_path, str(be))
+                update_job(
+                    job_id,
+                    state=JobState.finished,
+                    status=JobStatus.failed,
+                    errors=f"Critical error: {str(be)}",
+                    end_time=time.time(),
+                )
+                raise
 
         # Submit the job to the shared executor and handle timeout
         future = executor.submit(run)
@@ -105,12 +116,13 @@ class FlowRunner:
             logging.error(f"Flow {flow_path} not responding after {timeout} seconds, sending stop event")
             stop_event.set()
             while not future.done():
-                logging.info(f"Waiting for flow {flow_path} to stop gracefully...")
-                time.sleep(5)
                 update_job(
                     job_id,
                     state=JobState.stopping
-                )                
+                )           
+                logging.info(f"Waiting for flow {flow_path} to stop gracefully...")
+                time.sleep(5)
+    
             update_job(
                 job_id,
                 state=JobState.finished,

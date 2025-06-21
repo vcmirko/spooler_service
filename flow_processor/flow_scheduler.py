@@ -208,6 +208,9 @@ class FlowScheduler:
                 raise e
             except Exception as e:
                 raise e
+            except BaseException as be:
+                logging.error("BaseException occurred while running flow %s: %s", flow_path, be)
+                raise
 
             # Store the last job_id for this scheduled flow
             self.flows[schedule_id]["last_job_id"] = job_id
@@ -224,6 +227,9 @@ class FlowScheduler:
                     schedule.run_pending()
                 except Exception as e:
                     logging.error("Exception in scheduler loop: %s", e)
+                except BaseException as be:
+                    logging.error("BaseException in scheduler loop: %s", be)
+                    raise
                 time.sleep(1)
 
         Thread(target=run_scheduler, daemon=True).start()
