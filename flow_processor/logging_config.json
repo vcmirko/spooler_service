@@ -14,13 +14,13 @@
     "console": {
       "class": "logging.StreamHandler",
       "formatter": "pretty",
-      "level": "INFO"
+      "level": "DEBUG"
     },
     "file": {
       "class": "logging.FileHandler",
       "filename": "spooler_service.log",
       "formatter": "standard",
-      "level": "INFO"
+      "level": "DEBUG"
     },
     "null": {
       "class": "logging.NullHandler"
@@ -32,14 +32,14 @@
         "console",
         "file"
       ],
-      "level": "INFO"
+      "level": "DEBUG"
     },
     "flow_processor.api": {
       "handlers": [
         "console",
         "file"
       ],
-      "level": "INFO",
+      "level": "DEBUG",
       "propagate": false
     },
     "flow_processor.flow": {
@@ -47,7 +47,7 @@
         "console",
         "file"
       ],
-      "level": "INFO",
+      "level": "DEBUG",
       "propagate": false
     },
     "flow_processor.flow_runner": {
@@ -55,7 +55,7 @@
         "console",
         "file"
       ],
-      "level": "INFO",
+      "level": "DEBUG",
       "propagate": false
     },
     "flow_processor.flow_scheduler": {
@@ -63,7 +63,7 @@
         "console",
         "file"
       ],
-      "level": "INFO",
+      "level": "DEBUG",
       "propagate": false
     },
     "flow_processor.job_store": {
@@ -71,7 +71,7 @@
         "console",
         "file"
       ],
-      "level": "INFO",
+      "level": "DEBUG",
       "propagate": false
     },
     "flow_processor.scheduler_service": {
@@ -79,7 +79,7 @@
         "console",
         "file"
       ],
-      "level": "INFO",
+      "level": "DEBUG",
       "propagate": false
     },
     "flow_processor.step": {
@@ -87,7 +87,7 @@
         "console",
         "file"
       ],
-      "level": "INFO",
+      "level": "DEBUG",
       "propagate": false
     },
     "flow_processor.utils": {
@@ -95,7 +95,7 @@
         "console",
         "file"
       ],
-      "level": "INFO",
+      "level": "DEBUG",
       "propagate": false
     },
     "flow_processor.steps.debug_step": {
@@ -103,7 +103,7 @@
         "console",
         "file"
       ],
-      "level": "INFO",
+      "level": "DEBUG",
       "propagate": false
     },
     "flow_processor.steps.exit_step": {
@@ -111,7 +111,7 @@
         "console",
         "file"
       ],
-      "level": "INFO",
+      "level": "DEBUG",
       "propagate": false
     },
     "flow_processor.steps.file_step": {
@@ -119,7 +119,7 @@
         "console",
         "file"
       ],
-      "level": "INFO",
+      "level": "DEBUG",
       "propagate": false
     },
     "flow_processor.steps.flow_loop_step": {
@@ -127,7 +127,7 @@
         "console",
         "file"
       ],
-      "level": "INFO",
+      "level": "DEBUG",
       "propagate": false
     },
     "flow_processor.steps.flow_step": {
@@ -135,7 +135,7 @@
         "console",
         "file"
       ],
-      "level": "INFO",
+      "level": "DEBUG",
       "propagate": false
     },
     "flow_processor.steps.jinja_step": {
@@ -143,7 +143,7 @@
         "console",
         "file"
       ],
-      "level": "INFO",
+      "level": "DEBUG",
       "propagate": false
     },
     "flow_processor.steps.jira_names_merge_step": {
@@ -151,7 +151,7 @@
         "console",
         "file"
       ],
-      "level": "INFO",
+      "level": "DEBUG",
       "propagate": false
     },
     "flow_processor.steps.jq_step": {
@@ -159,7 +159,7 @@
         "console",
         "file"
       ],
-      "level": "INFO",
+      "level": "DEBUG",
       "propagate": false
     },
     "flow_processor.steps.rest_step": {
@@ -167,7 +167,7 @@
         "console",
         "file"
       ],
-      "level": "INFO",
+      "level": "DEBUG",
       "propagate": false
     },
     "flow_processor.steps.sleep_step": {
@@ -175,7 +175,7 @@
         "console",
         "file"
       ],
-      "level": "INFO",
+      "level": "DEBUG",
       "propagate": false
     }
   }
