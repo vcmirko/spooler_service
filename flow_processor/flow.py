@@ -97,7 +97,7 @@ class Flow:
             current_idx = 0
 
             # as long as we have steps to process
-            while current_idx < len(self._steps) and not stop_event.is_set():
+            while current_idx < len(self._steps) and (not stop_event or not stop_event.is_set()):
 
                 # get the current step
                 step = self._steps[current_idx]
@@ -195,7 +195,7 @@ class Flow:
                     current_idx += 1
 
             # in case the flow was stopped but no error ever occurred.
-            if stop_event.is_set():
+            if stop_event and stop_event.is_set():
                 logging.info("%s Flow %s stopping on request.", self._representation, self._name)
                 return self._data, {"type": "failed", "message": "Flow stopped on request."}
 
